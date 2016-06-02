@@ -2,12 +2,15 @@ package beater
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/aristanetworks/goarista/openconfig"
 	"github.com/elastic/beats/libbeat/beat"
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
 	"github.com/elastic/beats/libbeat/publisher"
+	"google.golang.org/grpc"
 
 	"github.com/aristanetworks/openconfigbeat/config"
 )
@@ -15,7 +18,8 @@ import (
 type Openconfigbeat struct {
 	beatConfig *config.Config
 	done       chan struct{}
-	period     time.Duration
+	addresses  []string
+	paths      []openconfig.Path
 	client     publisher.Client
 }
 
@@ -36,23 +40,23 @@ func (bt *Openconfigbeat) Config(b *beat.Beat) error {
 		return fmt.Errorf("Error reading config file: %v", err)
 	}
 
+	config := bt.beatConfig.Openconfigbeat
+	bt.addresses = *config.Addresses
+	if config.Paths == nil {
+		bt.paths = []openconfig.Path{openconfig.Path{Element: []string{"/"}}}
+	} else {
+		for _, path := range *config.Paths {
+			bt.paths = append(bt.paths,
+				openconfig.Path{Element: strings.Split(path, "/")})
+		}
+	}
+
 	return nil
 }
 
 func (bt *Openconfigbeat) Setup(b *beat.Beat) error {
 
-	// Setting default period if not set
-	if bt.beatConfig.Openconfigbeat.Period == "" {
-		bt.beatConfig.Openconfigbeat.Period = "1s"
-	}
-
 	bt.client = b.Publisher.Connect()
-
-	var err error
-	bt.period, err = time.ParseDuration(bt.beatConfig.Openconfigbeat.Period)
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -60,14 +64,24 @@ func (bt *Openconfigbeat) Setup(b *beat.Beat) error {
 func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 	logp.Info("openconfigbeat is running! Hit CTRL-C to stop it.")
 
-	ticker := time.NewTicker(bt.period)
+	conn, err := grpc.Dial(bt.addresses[0])
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	openconfig.NewOpenConfigClient(conn)
+
+	// TODO: subscribe
+
 	counter := 1
 	for {
+
+		/* TODO: read subscribe responses and publish events
 		select {
 		case <-bt.done:
 			return nil
-		case <-ticker.C:
 		}
+		*/
 
 		event := common.MapStr{
 			"@timestamp": common.Time(time.Now()),
