@@ -64,10 +64,12 @@ func (bt *Openconfigbeat) Setup(b *beat.Beat) error {
 func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 	logp.Info("openconfigbeat is running! Hit CTRL-C to stop it.")
 
-	conn, err := grpc.Dial(bt.addresses[0], grpc.WithInsecure())
+	addr := bt.addresses[0]
+	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
 		return err
 	}
+	logp.Info("Connected to %s", addr)
 	defer conn.Close()
 	openconfig.NewOpenConfigClient(conn)
 
@@ -88,7 +90,9 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 			"type":       b.Name,
 			"counter":    counter,
 		}
-		bt.client.PublishEvent(event)
+		if !bt.client.PublishEvent(event) {
+			return fmt.Errorf("Failed to publish %dth event", counter)
+		}
 		logp.Info("Event sent")
 		counter++
 	}
