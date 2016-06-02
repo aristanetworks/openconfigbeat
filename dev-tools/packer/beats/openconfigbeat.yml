@@ -1,0 +1,4 @@
+beat_name: openconfigbeat
+beat_url: 'https://github.com/aristanetworks'
+beat_repo: 'github.com/aristanetworks'
+beat_description: Sends openconfigbeat metrics to Logstash or directly to Elasticsearch.

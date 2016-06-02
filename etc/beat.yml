@@ -1,0 +1,7 @@
+################### Openconfigbeat Configuration Example #########################
+
+############################# Openconfigbeat ######################################
+
+openconfigbeat:
+  # Defines how often an event is sent to the output
+  period: 1s

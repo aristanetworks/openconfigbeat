@@ -1,0 +1,7 @@
+/.idea
+/build
+
+.DS_Store
+/openconfigbeat
+/openconfigbeat.test
+*.pyc
