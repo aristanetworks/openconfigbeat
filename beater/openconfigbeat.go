@@ -64,7 +64,7 @@ func (bt *Openconfigbeat) Setup(b *beat.Beat) error {
 func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 	logp.Info("openconfigbeat is running! Hit CTRL-C to stop it.")
 
-	conn, err := grpc.Dial(bt.addresses[0])
+	conn, err := grpc.Dial(bt.addresses[0], grpc.WithInsecure())
 	if err != nil {
 		return err
 	}
