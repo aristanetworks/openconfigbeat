@@ -3,5 +3,7 @@
 ############################# Openconfigbeat ######################################
 
 openconfigbeat:
-  # Defines how often an event is sent to the output
-  period: 1s
+  # Defines the addresses of the OpenConfig devices to connect to
+  addresses: ["cairo:6042"]
+  # Defines the OpenConfig paths to subscribe to
+  paths: ["/"]
