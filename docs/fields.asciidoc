@@ -50,3 +50,5 @@ The timestamp when the log line was read. The precision is in milliseconds. The 
 required: True
 
 The type of beat.
+
+
