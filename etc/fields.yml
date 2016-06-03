@@ -31,7 +31,7 @@ env:
     - name: type
       required: true
       description: >
-        PLEASE UPDATE DOCUMENTATION
+        The type of beat.
 
 openconfigbeat:
   fields:
@@ -39,7 +39,7 @@ openconfigbeat:
       type: integer
       required: true
       description: >
-        PLEASE UPDATE DOCUMENTATION
+        Sequence number of the event.
 
 sections:
   - ["env", "Common"]

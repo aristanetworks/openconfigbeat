@@ -94,8 +94,9 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 			return fmt.Errorf("Failed to publish %dth event", counter)
 		}
 		logp.Info("Event sent")
-		counter++
+		break
 	}
+	return nil
 }
 
 func (bt *Openconfigbeat) Cleanup(b *beat.Beat) error {
