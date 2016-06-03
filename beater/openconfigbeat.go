@@ -10,23 +10,27 @@ import (
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
 	"github.com/elastic/beats/libbeat/publisher"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
 	"github.com/aristanetworks/openconfigbeat/config"
 )
 
 type Openconfigbeat struct {
-	beatConfig *config.Config
-	done       chan struct{}
-	addresses  []string
-	paths      []openconfig.Path
-	client     publisher.Client
+	beatConfig        *config.Config
+	done              chan struct{}
+	addresses         []string
+	paths             []*openconfig.Path
+	subscribeClient   openconfig.OpenConfig_SubscribeClient
+	subscribeResponse chan map[string]interface{}
+	client            publisher.Client
 }
 
 // Creates beater
 func New() *Openconfigbeat {
 	return &Openconfigbeat{
-		done: make(chan struct{}),
+		done:              make(chan struct{}),
+		subscribeResponse: make(chan map[string]interface{}),
 	}
 }
 
@@ -43,11 +47,11 @@ func (bt *Openconfigbeat) Config(b *beat.Beat) error {
 	config := bt.beatConfig.Openconfigbeat
 	bt.addresses = *config.Addresses
 	if config.Paths == nil {
-		bt.paths = []openconfig.Path{openconfig.Path{Element: []string{"/"}}}
+		bt.paths = []*openconfig.Path{&openconfig.Path{Element: []string{"/"}}}
 	} else {
 		for _, path := range *config.Paths {
 			bt.paths = append(bt.paths,
-				openconfig.Path{Element: strings.Split(path, "/")})
+				&openconfig.Path{Element: strings.Split(path, "/")})
 		}
 	}
 
@@ -61,9 +65,38 @@ func (bt *Openconfigbeat) Setup(b *beat.Beat) error {
 	return nil
 }
 
+// listen listens for SubscribeResponse notifications on stream, and publishes the
+// JSON representation of the notifications it receives on a channel
+func (bt *Openconfigbeat) recv() {
+	for {
+		response, err := bt.subscribeClient.Recv()
+		if err != nil {
+			logp.Err(err.Error())
+			return
+		}
+		update := response.GetUpdate()
+		if update == nil {
+			logp.Err("Unhandled subscribe response: %s", response)
+			return
+		}
+		updateMap, err := openconfig.NotificationToMap(update)
+		if err != nil {
+			logp.Err(err.Error())
+			return
+		}
+		select {
+		case bt.subscribeResponse <- updateMap:
+		case <-bt.done:
+			return
+		}
+	}
+}
+
 func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 	logp.Info("openconfigbeat is running! Hit CTRL-C to stop it.")
+	var err error
 
+	// Connect the OpenConfig client
 	addr := bt.addresses[0]
 	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
@@ -71,32 +104,53 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 	}
 	logp.Info("Connected to %s", addr)
 	defer conn.Close()
-	openconfig.NewOpenConfigClient(conn)
+	client := openconfig.NewOpenConfigClient(conn)
 
-	// TODO: subscribe
+	// Subscribe
+	bt.subscribeClient, err = client.Subscribe(context.Background())
+	if err != nil {
+		return err
+	}
+	defer bt.subscribeClient.CloseSend()
+	for _, path := range bt.paths {
+		sub := &openconfig.SubscribeRequest{
+			Request: &openconfig.SubscribeRequest_Subscribe{
+				Subscribe: &openconfig.SubscriptionList{
+					Subscription: []*openconfig.Subscription{
+						&openconfig.Subscription{
+							Path: path,
+						},
+					},
+				},
+			},
+		}
+		err = bt.subscribeClient.Send(sub)
+		if err != nil {
+			return err
+		}
+	}
 
+	// Main loop
 	counter := 1
+	go bt.recvLoop()
 	for {
-
-		/* TODO: read subscribe responses and publish events
 		select {
 		case <-bt.done:
 			return nil
+		case response := <-bt.subscribeResponse:
+			event := common.MapStr{
+				"@timestamp": common.Time(time.Now()),
+				"type":       b.Name,
+				"counter":    counter,
+				"update":     response,
+			}
+			if !bt.client.PublishEvent(event) {
+				return fmt.Errorf("Failed to publish %dth event", counter)
+			}
+			logp.Info("Event sent")
+			counter++
 		}
-		*/
-
-		event := common.MapStr{
-			"@timestamp": common.Time(time.Now()),
-			"type":       b.Name,
-			"counter":    counter,
-		}
-		if !bt.client.PublishEvent(event) {
-			return fmt.Errorf("Failed to publish %dth event", counter)
-		}
-		logp.Info("Event sent")
-		break
 	}
-	return nil
 }
 
 func (bt *Openconfigbeat) Cleanup(b *beat.Beat) error {

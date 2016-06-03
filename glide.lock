@@ -1,8 +1,8 @@
 hash: d5bd736f10ae911c70feea9120de20f09c5b2412bb3e2fcf256740141a03829f
-updated: 2016-06-02T15:12:23.208096836-07:00
+updated: 2016-06-03T14:19:24.173148875-07:00
 imports:
 - name: github.com/aristanetworks/goarista
-  version: 7e340ac46b1acbf3a66af653210bc4567197daee
+  version: 3acc3ebc4c077d78da2419a408fc4b7dd8185c7b
   subpackages:
   - openconfig
 - name: github.com/dustin/go-humanize
@@ -79,7 +79,7 @@ imports:
   - windows/svc/debug
   - windows
 - name: google.golang.org/grpc
-  version: 62b140d8a38078772e9807dfc331153002a5d9b3
+  version: ce6213360cb8fadd0b08f9513406176ec931c5f7
   subpackages:
   - codes
   - credentials
