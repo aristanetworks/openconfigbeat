@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aristanetworks/goarista/elasticsearch"
 	"github.com/aristanetworks/goarista/openconfig"
 	"github.com/elastic/beats/libbeat/beat"
 	"github.com/elastic/beats/libbeat/common"
@@ -66,9 +67,9 @@ func (bt *Openconfigbeat) Setup(b *beat.Beat) error {
 	return nil
 }
 
-// listen listens for SubscribeResponse notifications on stream, and publishes the
+// recvLoop listens for SubscribeResponse notifications on stream, and publishes the
 // JSON representation of the notifications it receives on a channel
-func (bt *Openconfigbeat) recv() {
+func (bt *Openconfigbeat) recvLoop() {
 	for {
 		response, err := bt.subscribeClient.Recv()
 		if err != nil {
@@ -80,7 +81,7 @@ func (bt *Openconfigbeat) recv() {
 			logp.Err("Unhandled subscribe response: %s", response)
 			return
 		}
-		updateMap, err := openconfig.NotificationToMap(update)
+		updateMap, err := openconfig.NotificationToMap(update, elasticsearch.EscapeFieldName)
 		if err != nil {
 			logp.Err(err.Error())
 			return

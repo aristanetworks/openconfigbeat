@@ -1,9 +1,10 @@
 hash: d5bd736f10ae911c70feea9120de20f09c5b2412bb3e2fcf256740141a03829f
-updated: 2016-06-03T14:19:24.173148875-07:00
+updated: 2016-06-10T16:08:43.566164655-07:00
 imports:
 - name: github.com/aristanetworks/goarista
-  version: 3acc3ebc4c077d78da2419a408fc4b7dd8185c7b
+  version: f8be127cdb5aaa968c6cdd6acdb4a5a93489ac21
   subpackages:
+  - elasticsearch
   - openconfig
 - name: github.com/dustin/go-humanize
   version: 8929fe90cee4b2cb9deb468b51fb34eba64d1bf0
@@ -44,7 +45,7 @@ imports:
   - redis
   - internal
 - name: github.com/golang/protobuf
-  version: 3b06fc7a4cad73efce5fe6217ab6c33e7231ab4a
+  version: 8616e8ee5e20a1704615e6c8d7afcdac06087a67
   subpackages:
   - proto
   - ptypes/any
@@ -55,7 +56,7 @@ imports:
 - name: github.com/nranchev/go-libGeoIP
   version: c78e8bd2dd3599feb21fd30886043979e82fe948
 - name: github.com/satori/go.uuid
-  version: f9ab0dce87d815821e221626b772e3475a0d2749
+  version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/Shopify/sarama
   version: 4ba9bba6adb6697bcec3841e1ecdfecf5227c3b9
 - name: github.com/urso/ucfg
@@ -73,13 +74,13 @@ imports:
   - http2/hpack
   - internal/timeseries
 - name: golang.org/x/sys
-  version: 076b546753157f758b316e59bcb51e6807c04057
+  version: b44883b474ffefa37335017174e397412b633a4f
   subpackages:
   - windows/svc
   - windows/svc/debug
   - windows
 - name: google.golang.org/grpc
-  version: ce6213360cb8fadd0b08f9513406176ec931c5f7
+  version: 88aeffff979aa77aa502cb011423d0a08fa12c5a
   subpackages:
   - codes
   - credentials
