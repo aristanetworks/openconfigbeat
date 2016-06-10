@@ -2,6 +2,7 @@ package beater
 
 import (
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -131,8 +132,12 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 	}
 
 	// Main loop
-	counter := 1
+	device, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return err
+	}
 	go bt.recvLoop()
+	counter := 1
 	for {
 		select {
 		case <-bt.done:
@@ -142,7 +147,7 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 				"@timestamp": common.Time(time.Now()),
 				"type":       b.Name,
 				"counter":    counter,
-				"update":     response,
+				device:       response,
 			}
 			if !bt.client.PublishEvent(event) {
 				return fmt.Errorf("Failed to publish %dth event", counter)
