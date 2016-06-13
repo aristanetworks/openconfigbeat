@@ -147,11 +147,21 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 		case <-bt.done:
 			return nil
 		case response := <-bt.subscribeResponse:
+			timestamp, found := response["_timestamp"]
+			if !found {
+				return fmt.Errorf("Malformed subscribe response: %s", response)
+			}
+			timestampNs, ok := timestamp.(int64)
+			if !ok {
+				return fmt.Errorf("Malformed timestamp: %s", timestamp)
+			}
+			delete(response, "_timestamp")
 			event := common.MapStr{
-				"@timestamp": common.Time(time.Now()),
-				"type":       b.Name,
-				"counter":    counter,
-				device:       response,
+				"@timestamp": common.Time(time.Unix(timestampNs/1e9,
+					timestampNs%1e9)),
+				"type":    b.Name,
+				"counter": counter,
+				device:    response,
 			}
 			if !bt.client.PublishEvent(event) {
 				return fmt.Errorf("Failed to publish %dth event", counter)
