@@ -1,3 +1,7 @@
+// Copyright (C) 2016  Arista Networks, Inc.
+// Use of this source code is governed by the Apache License 2.0
+// that can be found in the LICENSE file.
+
 // Config is put into a different package to prevent cyclic imports in case
 // it is needed in several locations
 
