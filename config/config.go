@@ -28,9 +28,5 @@ func (c *OpenconfigbeatConfig) Validate() error {
 	if len(*c.Addresses) > 1 {
 		return errors.New("Connecting to more than one device not yet supported")
 	}
-	// TODO: implement
-	if c.Paths != nil && len(*c.Paths) > 1 {
-		return errors.New("Subscribing to more than one path not yet supported")
-	}
 	return nil
 }
