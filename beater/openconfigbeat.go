@@ -100,7 +100,6 @@ func (bt *Openconfigbeat) recvLoop() {
 
 func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 	logp.Info("openconfigbeat is running! Hit CTRL-C to stop it.")
-	var err error
 
 	// Connect the OpenConfig client
 	addr := bt.addresses[0]
