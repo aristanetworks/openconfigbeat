@@ -83,14 +83,13 @@ func (bt *Openconfigbeat) recv(host string) {
 		}
 		update := response.GetUpdate()
 		if update == nil {
-			logp.Err("Unhandled subscribe response: %s", response)
-			return
+			continue
 		}
 		updateMap, err := openconfig.NotificationToMap(update,
 			elasticsearch.EscapeFieldName)
 		if err != nil {
 			logp.Err(err.Error())
-			return
+			continue
 		}
 		updateMap["device"] = host
 		timestamp, found := updateMap["_timestamp"]
@@ -159,6 +158,7 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 			},
 		}
 		for _, s := range bt.subscribeClients {
+			logp.Info("Sending subscribe request: %s", sub)
 			err := s.Send(sub)
 			if err != nil {
 				return err
