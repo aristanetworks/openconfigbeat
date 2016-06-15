@@ -33,14 +33,6 @@ env:
       description: >
         The type of beat.
 
-openconfigbeat:
-  fields:
-    - name: counter
-      type: integer
-      required: true
-      description: >
-        Sequence number of the event.
-
 sections:
   - ["env", "Common"]
   - ["openconfigbeat", "Openconfigbeat"]

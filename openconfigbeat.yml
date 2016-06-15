@@ -4,7 +4,7 @@
 
 openconfigbeat:
   # Defines the addresses of the OpenConfig devices to connect to
-  addresses: ["cairo:6042"]
+  addresses: ["cairo:6042", "dakar:6042", "manila:6042"]
   # Defines the OpenConfig paths to subscribe to
   paths: ["/"]
 ###############################################################################

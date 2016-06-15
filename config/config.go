@@ -9,6 +9,7 @@ package config
 
 import (
 	"errors"
+	"net"
 )
 
 type Config struct {
@@ -21,12 +22,19 @@ type OpenconfigbeatConfig struct {
 }
 
 func (c *OpenconfigbeatConfig) Validate() error {
-	if c.Addresses == nil {
+	if c.Addresses == nil || len(*c.Addresses) == 0 {
 		return errors.New("Please specify at least a device to connect to in 'addresses'")
 	}
-	// TODO: implement
-	if len(*c.Addresses) > 1 {
-		return errors.New("Connecting to more than one device not yet supported")
+	seen := make(map[string]bool, len(*c.Addresses))
+	for _, hostPort := range *c.Addresses {
+		host, _, err := net.SplitHostPort(hostPort)
+		if err != nil {
+			return err
+		}
+		if _, found := seen[host]; found {
+			return errors.New("Duplicate host(s) found in 'addresses'")
+		}
+		seen[host] = true
 	}
 	return nil
 }

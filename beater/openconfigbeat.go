@@ -23,20 +23,21 @@ import (
 )
 
 type Openconfigbeat struct {
-	beatConfig        *config.Config
-	done              chan struct{}
-	addresses         []string
-	paths             []*openconfig.Path
-	subscribeClient   openconfig.OpenConfig_SubscribeClient
-	subscribeResponse chan map[string]interface{}
-	client            publisher.Client
+	beatConfig       *config.Config
+	done             chan struct{}
+	addresses        []string
+	paths            []*openconfig.Path
+	subscribeClients map[string]openconfig.OpenConfig_SubscribeClient
+	events           chan common.MapStr
+	client           publisher.Client
 }
 
 // Creates beater
 func New() *Openconfigbeat {
 	return &Openconfigbeat{
-		done:              make(chan struct{}),
-		subscribeResponse: make(chan map[string]interface{}),
+		done:             make(chan struct{}),
+		subscribeClients: make(map[string]openconfig.OpenConfig_SubscribeClient),
+		events:           make(chan common.MapStr),
 	}
 }
 
@@ -71,11 +72,11 @@ func (bt *Openconfigbeat) Setup(b *beat.Beat) error {
 	return nil
 }
 
-// recvLoop listens for SubscribeResponse notifications on stream, and publishes the
+// recv listens for SubscribeResponse notifications on a stream, and publishes the
 // JSON representation of the notifications it receives on a channel
-func (bt *Openconfigbeat) recvLoop() {
+func (bt *Openconfigbeat) recv(host string) {
 	for {
-		response, err := bt.subscribeClient.Recv()
+		response, err := bt.subscribeClients[host].Recv()
 		if err != nil {
 			logp.Err(err.Error())
 			return
@@ -85,16 +86,38 @@ func (bt *Openconfigbeat) recvLoop() {
 			logp.Err("Unhandled subscribe response: %s", response)
 			return
 		}
-		updateMap, err := openconfig.NotificationToMap(update, elasticsearch.EscapeFieldName)
+		updateMap, err := openconfig.NotificationToMap(update,
+			elasticsearch.EscapeFieldName)
 		if err != nil {
 			logp.Err(err.Error())
 			return
 		}
+		updateMap["device"] = host
+		timestamp, found := updateMap["_timestamp"]
+		if !found {
+			logp.Err("Malformed subscribe response: %s", updateMap)
+			continue
+		}
+		timestampNs, ok := timestamp.(int64)
+		if !ok {
+			logp.Err("Malformed timestamp: %s", timestamp)
+			continue
+		}
+		updateMap["@timestamp"] = common.Time(time.Unix(timestampNs/1e9,
+			timestampNs%1e9))
+		delete(updateMap, "_timestamp")
 		select {
-		case bt.subscribeResponse <- updateMap:
+		case bt.events <- updateMap:
 		case <-bt.done:
 			return
 		}
+	}
+}
+
+// recvAll listens for SubscribeResponse notifications on all streams
+func (bt *Openconfigbeat) recvAll() {
+	for i := range bt.subscribeClients {
+		go bt.recv(i)
 	}
 }
 
@@ -102,21 +125,27 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 	logp.Info("openconfigbeat is running! Hit CTRL-C to stop it.")
 
 	// Connect the OpenConfig client
-	addr := bt.addresses[0]
-	conn, err := grpc.Dial(addr, grpc.WithInsecure())
-	if err != nil {
-		return err
-	}
-	logp.Info("Connected to %s", addr)
-	defer conn.Close()
-	client := openconfig.NewOpenConfigClient(conn)
+	for _, addr := range bt.addresses {
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		if err != nil {
+			return err
+		}
+		logp.Info("Connected to %s", addr)
+		defer conn.Close()
+		client := openconfig.NewOpenConfigClient(conn)
 
-	// Subscribe
-	bt.subscribeClient, err = client.Subscribe(context.Background())
-	if err != nil {
-		return err
+		// Subscribe
+		s, err := client.Subscribe(context.Background())
+		if err != nil {
+			return err
+		}
+		defer s.CloseSend()
+		device, _, err := net.SplitHostPort(addr)
+		if err != nil {
+			return err
+		}
+		bt.subscribeClients[device] = s
 	}
-	defer bt.subscribeClient.CloseSend()
 	for _, path := range bt.paths {
 		sub := &openconfig.SubscribeRequest{
 			Request: &openconfig.SubscribeRequest_Subscribe{
@@ -129,45 +158,24 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 				},
 			},
 		}
-		err = bt.subscribeClient.Send(sub)
-		if err != nil {
-			return err
+		for _, s := range bt.subscribeClients {
+			err := s.Send(sub)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	// Main loop
-	device, _, err := net.SplitHostPort(addr)
-	if err != nil {
-		return err
-	}
-	go bt.recvLoop()
-	counter := 1
+	bt.recvAll()
 	for {
 		select {
 		case <-bt.done:
 			return nil
-		case response := <-bt.subscribeResponse:
-			timestamp, found := response["_timestamp"]
-			if !found {
-				return fmt.Errorf("Malformed subscribe response: %s", response)
-			}
-			timestampNs, ok := timestamp.(int64)
-			if !ok {
-				return fmt.Errorf("Malformed timestamp: %s", timestamp)
-			}
-			delete(response, "_timestamp")
-			event := common.MapStr{
-				"@timestamp": common.Time(time.Unix(timestampNs/1e9,
-					timestampNs%1e9)),
-				"type":    b.Name,
-				"counter": counter,
-				device:    response,
-			}
+		case event := <-bt.events:
+			event["type"] = b.Name
 			if !bt.client.PublishEvent(event) {
-				return fmt.Errorf("Failed to publish %dth event", counter)
+				return fmt.Errorf("Failed to publish event %q", event)
 			}
-			logp.Info("Event sent")
-			counter++
 		}
 	}
 }
