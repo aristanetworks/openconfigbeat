@@ -95,7 +95,7 @@ func (bt *Openconfigbeat) recv(host string) {
 		timestamp, found := updateMap["_timestamp"]
 		if !found {
 			logp.Err("Malformed subscribe response: %s", updateMap)
-			continue
+			return
 		}
 		timestampNs, ok := timestamp.(int64)
 		if !ok {
