@@ -1,8 +1,8 @@
 hash: d5bd736f10ae911c70feea9120de20f09c5b2412bb3e2fcf256740141a03829f
-updated: 2016-06-10T16:08:43.566164655-07:00
+updated: 2016-06-16T16:48:32.307520334-07:00
 imports:
 - name: github.com/aristanetworks/goarista
-  version: f8be127cdb5aaa968c6cdd6acdb4a5a93489ac21
+  version: 0d22356dc13a5dac652debc2a5ff70aa5a7bb991
   subpackages:
   - elasticsearch
   - openconfig
@@ -45,7 +45,7 @@ imports:
   - redis
   - internal
 - name: github.com/golang/protobuf
-  version: 8616e8ee5e20a1704615e6c8d7afcdac06087a67
+  version: 0c1f6d65b5a189c2250d10e71a5506f06f9fa0a0
   subpackages:
   - proto
   - ptypes/any
@@ -74,13 +74,13 @@ imports:
   - http2/hpack
   - internal/timeseries
 - name: golang.org/x/sys
-  version: b44883b474ffefa37335017174e397412b633a4f
+  version: 62bee037599929a6e9146f29d10dd5208c43507d
   subpackages:
   - windows/svc
   - windows/svc/debug
   - windows
 - name: google.golang.org/grpc
-  version: 88aeffff979aa77aa502cb011423d0a08fa12c5a
+  version: e78224b060cf3215247b7be455f80ea22e469b66
   subpackages:
   - codes
   - credentials
