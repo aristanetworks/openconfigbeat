@@ -1,8 +1,8 @@
 hash: d5bd736f10ae911c70feea9120de20f09c5b2412bb3e2fcf256740141a03829f
-updated: 2016-06-16T16:48:32.307520334-07:00
+updated: 2016-06-20T22:30:43.387919644-07:00
 imports:
 - name: github.com/aristanetworks/goarista
-  version: 0d22356dc13a5dac652debc2a5ff70aa5a7bb991
+  version: a0f62911fb280dd6f73155231a466cf8e855b8b5
   subpackages:
   - elasticsearch
   - openconfig
