@@ -81,20 +81,15 @@ func (bt *Openconfigbeat) recv(host string) {
 			logp.Err(err.Error())
 			return
 		}
-		update := response.GetUpdate()
-		if update == nil {
-			continue
-		}
-		updateMap, err := openconfig.NotificationToMap(update,
+		notifMap, err := openconfig.NotificationToMap(host, response,
 			elasticsearch.EscapeFieldName)
 		if err != nil {
 			logp.Err(err.Error())
 			continue
 		}
-		updateMap["device"] = host
-		timestamp, found := updateMap["_timestamp"]
+		timestamp, found := notifMap["timestamp"]
 		if !found {
-			logp.Err("Malformed subscribe response: %s", updateMap)
+			logp.Err("Malformed subscribe response: %s", notifMap)
 			return
 		}
 		timestampNs, ok := timestamp.(int64)
@@ -102,11 +97,11 @@ func (bt *Openconfigbeat) recv(host string) {
 			logp.Err("Malformed timestamp: %s", timestamp)
 			continue
 		}
-		updateMap["@timestamp"] = common.Time(time.Unix(timestampNs/1e9,
+		notifMap["@timestamp"] = common.Time(time.Unix(timestampNs/1e9,
 			timestampNs%1e9))
-		delete(updateMap, "_timestamp")
+		delete(notifMap, "timestamp")
 		select {
-		case bt.events <- updateMap:
+		case bt.events <- notifMap:
 		case <-bt.done:
 			return
 		}
