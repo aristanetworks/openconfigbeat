@@ -82,7 +82,11 @@ func (bt *Openconfigbeat) recv(host string) {
 			logp.Err(err.Error())
 			return
 		}
-		notifMap, err := openconfig.NotificationToMap(host, response.GetUpdate(),
+		update := response.GetUpdate()
+		if update == nil {
+			continue
+		}
+		notifMap, err := openconfig.NotificationToMap(host, update,
 			elasticsearch.EscapeFieldName)
 		if err != nil {
 			logp.Err(err.Error())
