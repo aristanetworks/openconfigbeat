@@ -16,6 +16,7 @@ import (
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
 	"github.com/elastic/beats/libbeat/publisher"
+	pb "github.com/openconfig/reference/rpc/openconfig"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
@@ -26,8 +27,8 @@ type Openconfigbeat struct {
 	beatConfig       *config.Config
 	done             chan struct{}
 	addresses        []string
-	paths            []*openconfig.Path
-	subscribeClients map[string]openconfig.OpenConfig_SubscribeClient
+	paths            []*pb.Path
+	subscribeClients map[string]pb.OpenConfig_SubscribeClient
 	events           chan common.MapStr
 	client           publisher.Client
 }
@@ -36,7 +37,7 @@ type Openconfigbeat struct {
 func New() *Openconfigbeat {
 	return &Openconfigbeat{
 		done:             make(chan struct{}),
-		subscribeClients: make(map[string]openconfig.OpenConfig_SubscribeClient),
+		subscribeClients: make(map[string]pb.OpenConfig_SubscribeClient),
 		events:           make(chan common.MapStr),
 	}
 }
@@ -54,11 +55,11 @@ func (bt *Openconfigbeat) Config(b *beat.Beat) error {
 	config := bt.beatConfig.Openconfigbeat
 	bt.addresses = *config.Addresses
 	if config.Paths == nil {
-		bt.paths = []*openconfig.Path{&openconfig.Path{Element: []string{"/"}}}
+		bt.paths = []*pb.Path{&pb.Path{Element: []string{"/"}}}
 	} else {
 		for _, path := range *config.Paths {
 			bt.paths = append(bt.paths,
-				&openconfig.Path{Element: strings.Split(path, "/")})
+				&pb.Path{Element: strings.Split(path, "/")})
 		}
 	}
 
@@ -81,7 +82,7 @@ func (bt *Openconfigbeat) recv(host string) {
 			logp.Err(err.Error())
 			return
 		}
-		notifMap, err := openconfig.NotificationToMap(host, response,
+		notifMap, err := openconfig.NotificationToMap(host, response.GetUpdate(),
 			elasticsearch.EscapeFieldName)
 		if err != nil {
 			logp.Err(err.Error())
@@ -126,7 +127,7 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 		}
 		logp.Info("Connected to %s", addr)
 		defer conn.Close()
-		client := openconfig.NewOpenConfigClient(conn)
+		client := pb.NewOpenConfigClient(conn)
 
 		// Subscribe
 		s, err := client.Subscribe(context.Background())
@@ -141,11 +142,11 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 		bt.subscribeClients[device] = s
 	}
 	for _, path := range bt.paths {
-		sub := &openconfig.SubscribeRequest{
-			Request: &openconfig.SubscribeRequest_Subscribe{
-				Subscribe: &openconfig.SubscriptionList{
-					Subscription: []*openconfig.Subscription{
-						&openconfig.Subscription{
+		sub := &pb.SubscribeRequest{
+			Request: &pb.SubscribeRequest_Subscribe{
+				Subscribe: &pb.SubscriptionList{
+					Subscription: []*pb.Subscription{
+						&pb.Subscription{
 							Path: path,
 						},
 					},

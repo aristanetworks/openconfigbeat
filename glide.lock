@@ -1,86 +1,103 @@
 hash: d5bd736f10ae911c70feea9120de20f09c5b2412bb3e2fcf256740141a03829f
-updated: 2016-06-20T22:30:43.387919644-07:00
+updated: 2016-09-20T14:17:17.740180373+02:00
 imports:
 - name: github.com/aristanetworks/goarista
-  version: a0f62911fb280dd6f73155231a466cf8e855b8b5
+  version: 2057638fcfeef2983e363edd0d428df75118bb06
   subpackages:
   - elasticsearch
   - openconfig
+- name: github.com/davecgh/go-spew
+  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
+  subpackages:
+  - spew
 - name: github.com/dustin/go-humanize
-  version: 8929fe90cee4b2cb9deb468b51fb34eba64d1bf0
+  version: 2fcb5204cdc65b4bec9fd0a87606bb0d0e3c54e8
 - name: github.com/eapache/go-resiliency
   version: b86b1ec0dd4209a588dc1285cdd471e73525c0b3
   subpackages:
   - breaker
+- name: github.com/eapache/go-xerial-snappy
+  version: bb955e01b9346ac19dc29eb16586c90ded99a98c
 - name: github.com/eapache/queue
-  version: ded5959c0d4e360646dc9e9908cff48666781367
+  version: 44cc805cf13205b55f69e14bcb69867d1ae92f98
 - name: github.com/elastic/beats
   version: 40146f0616ff4bce05acbc0435c9828aa435bfd3
   subpackages:
   - libbeat/beat
   - libbeat/cfgfile
   - libbeat/common
-  - libbeat/logp
-  - libbeat/publisher
-  - libbeat/filter
-  - libbeat/paths
-  - libbeat/service
   - libbeat/common/op
+  - libbeat/common/streambuf
+  - libbeat/filter
+  - libbeat/logp
   - libbeat/outputs
   - libbeat/outputs/console
   - libbeat/outputs/elasticsearch
   - libbeat/outputs/fileout
   - libbeat/outputs/kafka
   - libbeat/outputs/logstash
-  - libbeat/outputs/redis
-  - libbeat/common/streambuf
   - libbeat/outputs/mode
-  - libbeat/outputs/mode/modeutil
-  - libbeat/outputs/transport
   - libbeat/outputs/mode/lb
+  - libbeat/outputs/mode/modeutil
   - libbeat/outputs/mode/single
+  - libbeat/outputs/redis
+  - libbeat/outputs/transport
+  - libbeat/paths
+  - libbeat/publisher
+  - libbeat/service
+- name: github.com/elastic/go-ucfg
+  version: f68e111e1035a51815b85556e4682c1cb4009b58
 - name: github.com/garyburd/redigo
-  version: b8dc90050f24c1a73a52f107f3f575be67b21b7c
+  version: ffa8d46ada782d81cfda81a0fbd9f45ceae448e8
   subpackages:
-  - redis
   - internal
+  - redis
 - name: github.com/golang/protobuf
-  version: 0c1f6d65b5a189c2250d10e71a5506f06f9fa0a0
+  version: 1f49d83d9aa00e6ce4fc8258c71cc7786aec968a
   subpackages:
   - proto
   - ptypes/any
 - name: github.com/golang/snappy
-  version: 894fd4616c897c201d223c3c0c128e8c648c96a2
+  version: d9eb7a3d35ec988b8585d4a0068e462c27d28380
 - name: github.com/klauspost/crc32
-  version: 6973dcf6594efa905c08260fe9120cae92ab4305
+  version: 19b0b332c9e4516a6370a0456e6182c3b5036720
 - name: github.com/nranchev/go-libGeoIP
   version: c78e8bd2dd3599feb21fd30886043979e82fe948
+- name: github.com/openconfig/reference
+  version: c3acedd9d976c8f70e1995cbf75c7b0eb08ae7ea
+  subpackages:
+  - rpc/openconfig
+- name: github.com/rcrowley/go-metrics
+  version: b71dba47c7bf0374dfe3b67da7b5b702fa160a15
 - name: github.com/satori/go.uuid
-  version: 879c5887cd475cd7864858769793b2ceb0d44feb
+  version: 0aa62d5ddceb50dbcb909d790b5345affd3669b6
 - name: github.com/Shopify/sarama
-  version: 4ba9bba6adb6697bcec3841e1ecdfecf5227c3b9
+  version: 482c471fbf73dc2ac66945187f811581f008c24a
 - name: github.com/urso/ucfg
-  version: 55e5fb343ba418d5ae520df8d603f292af0fd500
+  version: f68e111e1035a51815b85556e4682c1cb4009b58
   subpackages:
   - yaml
 - name: golang.org/x/net
-  version: d58ca6618b994150e624f6888d871f4709db51a0
+  version: 71a035914f99bb58fe82eac0f1289f10963d876c
   subpackages:
-  - proxy
-  - publicsuffix
   - context
   - http2
-  - trace
   - http2/hpack
   - internal/timeseries
+  - lex/httplex
+  - trace
+- name: golang.org/x/net/idna
+  version: 71a035914f99bb58fe82eac0f1289f10963d876c
+- name: golang.org/x/net/proxy
+  version: 71a035914f99bb58fe82eac0f1289f10963d876c
 - name: golang.org/x/sys
-  version: 62bee037599929a6e9146f29d10dd5208c43507d
+  version: 8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9
   subpackages:
+  - windows
   - windows/svc
   - windows/svc/debug
-  - windows
 - name: google.golang.org/grpc
-  version: e78224b060cf3215247b7be455f80ea22e469b66
+  version: 71d2ea4f75286a63b606aca2422cd17ff37fd5b8
   subpackages:
   - codes
   - credentials
@@ -88,8 +105,8 @@ imports:
   - internal
   - metadata
   - naming
-  - transport
   - peer
+  - transport
 - name: gopkg.in/yaml.v2
-  version: a83829b6f1293c91addabc89d0571c246397bbf4
-devImports: []
+  version: 31c299268d302dd0aa9a0dcf765a3d58971ac83f
+testImports: []
