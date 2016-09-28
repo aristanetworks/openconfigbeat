@@ -20,6 +20,7 @@ before_install:
 - rsync -az ${TRAVIS_BUILD_DIR}/ $HOME/gopath/src/github.com/aristanetworks/openconfigbeat
 - export TRAVIS_BUILD_DIR=$HOME/gopath/src/github.com/aristanetworks/openconfigbeat
 - cd $HOME/gopath/src/github.com/aristanetworks/openconfigbeat
+- go get -v github.com/Masterminds/glide
 install:
 - make
 after_success: 
