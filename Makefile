@@ -9,10 +9,6 @@ PREFIX?=.
 # Path to the libbeat Makefile
 -include $(ES_BEATS)/libbeat/scripts/Makefile
 
-.PHONY: update-deps
-update-deps:
-	glide update --no-recursive --strip-vcs
-
 # This is called by the beats packer before building starts
 .PHONY: before-build
 before-build:
