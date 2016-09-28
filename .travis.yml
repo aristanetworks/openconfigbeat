@@ -9,9 +9,6 @@ os:
 - linux
 - osx
 env:
-  matrix:
-  - TARGETS="check"
-  - TARGETS="-C openconfigbeat testsuite"
   global:
   - GOX_FLAGS="-arch amd64"
 addons:
@@ -19,14 +16,12 @@ addons:
     packages:
     - python-virtualenv
 before_install:
-- mkdir -p $HOME/gopath/src/github.com/elastic/beats/
-- rsync -az ${TRAVIS_BUILD_DIR}/ $HOME/gopath/src/github.com/elastic/beats/
-- export TRAVIS_BUILD_DIR=$HOME/gopath/src/github.com/elastic/beats/
-- cd $HOME/gopath/src/github.com/elastic/beats/
+- mkdir -p $HOME/gopath/src/github.com/aristanetworks/openconfigbeat
+- rsync -az ${TRAVIS_BUILD_DIR}/ $HOME/gopath/src/github.com/aristanetworks/openconfigbeat
+- export TRAVIS_BUILD_DIR=$HOME/gopath/src/github.com/aristanetworks/openconfigbeat
+- cd $HOME/gopath/src/github.com/aristanetworks/openconfigbeat
 install:
-- true
-script:
-- make $TARGETS
+- make
 after_success: 
 notifications:
   slack:
