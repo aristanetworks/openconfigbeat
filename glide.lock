@@ -1,5 +1,5 @@
-hash: d5bd736f10ae911c70feea9120de20f09c5b2412bb3e2fcf256740141a03829f
-updated: 2016-09-28T15:39:51.227025204-07:00
+hash: c0110a7fc50c748fa5f09c9ee938f0ced9fc735cf2af54fc3395e91f77daef48
+updated: 2016-09-29T11:10:04.079973889-07:00
 imports:
 - name: github.com/aristanetworks/goarista
   version: ab614c9640ad4c081ccd7120056b23ae78d84ec9
@@ -75,7 +75,6 @@ imports:
   - http2/hpack
   - internal/timeseries
   - proxy
-  - publicsuffix
   - trace
 - name: golang.org/x/sys
   version: 8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9

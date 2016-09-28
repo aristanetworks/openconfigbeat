@@ -1,0 +1,333 @@
+package crawler
+
+import (
+	"fmt"
+	"sync"
+	"time"
+
+	cfg "github.com/elastic/beats/filebeat/config"
+	"github.com/elastic/beats/filebeat/harvester"
+	"github.com/elastic/beats/filebeat/input"
+	"github.com/elastic/beats/libbeat/logp"
+)
+
+type Prospector struct {
+	ProspectorConfig cfg.ProspectorConfig
+	prospectorer     Prospectorer
+	spoolerChan      chan *input.FileEvent
+	harvesterChan    chan *input.FileEvent
+	registrar        *Registrar
+	done             chan struct{}
+	harvesterStates  []input.FileState
+	stateMutex       sync.Mutex
+}
+
+type Prospectorer interface {
+	Init()
+	Run()
+}
+
+func NewProspector(prospectorConfig cfg.ProspectorConfig, registrar *Registrar, spoolerChan chan *input.FileEvent) (*Prospector, error) {
+	prospector := &Prospector{
+		ProspectorConfig: prospectorConfig,
+		registrar:        registrar,
+		spoolerChan:      spoolerChan,
+		harvesterChan:    make(chan *input.FileEvent),
+		done:             make(chan struct{}),
+		harvesterStates:  []input.FileState{},
+	}
+
+	err := prospector.Init()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return prospector, nil
+}
+
+// Init sets up default config for prospector
+func (p *Prospector) Init() error {
+
+	err := p.setupProspectorConfig()
+	if err != nil {
+		return err
+	}
+
+	err = p.setupHarvesterConfig()
+	if err != nil {
+		return err
+	}
+
+	var prospectorer Prospectorer
+
+	switch p.ProspectorConfig.Harvester.InputType {
+	case cfg.StdinInputType:
+		prospectorer, err = NewProspectorStdin(p)
+		prospectorer.Init()
+	case cfg.LogInputType:
+		prospectorer, err = NewProspectorLog(p)
+		prospectorer.Init()
+
+	default:
+		return fmt.Errorf("Invalid prospector type: %v", p.ProspectorConfig.Harvester.InputType)
+	}
+
+	p.prospectorer = prospectorer
+
+	return nil
+}
+
+// Starts scanning through all the file paths and fetch the related files. Start a harvester for each file
+func (p *Prospector) Run(wg *sync.WaitGroup) {
+
+	// TODO: Defer the wg.Done() call to block shutdown
+	// Currently there are 2 cases where shutting down the prospector could be blocked:
+	// 1. reading from file
+	// 2. forwarding event to spooler
+	// As this is not implemented yet, no blocking on prospector shutdown is done.
+	wg.Done()
+
+	logp.Info("Starting prospector of type: %v", p.ProspectorConfig.Harvester.InputType)
+
+	// Open channel to receive events from harvester and forward them to spooler
+	// Here potential filtering can happen
+	go func() {
+		for {
+			select {
+			case <-p.done:
+				logp.Info("Prospector stopped")
+				return
+			case event := <-p.harvesterChan:
+				p.spoolerChan <- event
+				p.updateState(event.FileState)
+			}
+		}
+	}()
+
+	// Initial prospector run
+	p.prospectorer.Run()
+
+	for {
+		select {
+		case <-p.done:
+			logp.Info("Prospector stopped")
+			return
+		case <-time.After(p.ProspectorConfig.ScanFrequencyDuration):
+			logp.Info("Run prospector")
+			p.prospectorer.Run()
+		}
+	}
+}
+
+func (p *Prospector) updateState(newState input.FileState) {
+
+	p.stateMutex.Lock()
+	defer p.stateMutex.Unlock()
+
+	index, oldState := p.findPreviousState(newState)
+
+	if index >= 0 {
+		p.harvesterStates[index] = newState
+		logp.Debug("prospector", "Old state overwritten for %s", oldState.Source)
+	} else {
+		// No existing state found, add new one
+		p.harvesterStates = append(p.harvesterStates, newState)
+		logp.Debug("prospector", "New state added for %s", newState.Source)
+	}
+}
+
+// findPreviousState returns the previous state fo the file
+// In case no previous state exists, index -1 is returned
+func (p *Prospector) findPreviousState(newState input.FileState) (int, input.FileState) {
+
+	// TODO: This could be made potentially more performance by using an index (harvester id) and only use iteration as fall back
+	for index, oldState := range p.harvesterStates {
+		// This is using the FileStateOS for comparison as FileInfo identifiers can only be fetched for existing files
+		if oldState.FileStateOS.IsSame(newState.FileStateOS) {
+			return index, oldState
+		}
+	}
+
+	return -1, input.FileState{}
+}
+
+// cleanupState cleans up the internal prospector state after each scan
+// Files which reached ignore_older are removed from the state as these states are not needed anymore
+func (p *Prospector) cleanupStates() {
+	p.stateMutex.Lock()
+	defer p.stateMutex.Unlock()
+
+	// Cleanup can only happen after file reaches ignore_older
+	if p.ProspectorConfig.IgnoreOlderDuration != 0 {
+		for i, state := range p.harvesterStates {
+			// File is older then ignore_older -> remove state
+			if p.isIgnoreOlder(state) {
+				logp.Debug("prospector", "State removed for %s because of ignore_older: %s", state.Source)
+				p.harvesterStates = append(p.harvesterStates[:i], p.harvesterStates[i+1:]...)
+			}
+		}
+	}
+}
+
+func (p *Prospector) Stop() {
+	logp.Info("Stopping Prospector")
+	close(p.done)
+}
+
+// createHarvester creates a new harvester instance from the given state
+func (p *Prospector) createHarvester(state input.FileState) (*harvester.Harvester, error) {
+
+	h, err := harvester.NewHarvester(
+		&p.ProspectorConfig.Harvester,
+		state.Source,
+		state,
+		p.harvesterChan,
+		state.Offset,
+	)
+
+	return h, err
+}
+
+func (p *Prospector) startHarvester(state input.FileState, offset int64) (*harvester.Harvester, error) {
+	state.Offset = offset
+	// Create harvester with state
+	h, err := p.createHarvester(state)
+	if err != nil {
+		return nil, err
+	}
+
+	h.Start()
+
+	return h, nil
+}
+
+// Setup Prospector Config
+func (p *Prospector) setupProspectorConfig() error {
+	var err error
+	config := &p.ProspectorConfig
+
+	config.IgnoreOlderDuration, err = getConfigDuration(config.IgnoreOlder, cfg.DefaultIgnoreOlderDuration, "ignore_older")
+	if err != nil {
+		return err
+	}
+
+	config.ScanFrequencyDuration, err = getConfigDuration(config.ScanFrequency, cfg.DefaultScanFrequency, "scan_frequency")
+	if err != nil {
+		return err
+	}
+
+	if config.Harvester.InputType == cfg.LogInputType && len(config.Paths) == 0 {
+		return fmt.Errorf("No paths were defined for prospector")
+	}
+
+	if config.Harvester.JSON != nil && len(config.Harvester.JSON.MessageKey) == 0 &&
+		config.Harvester.Multiline != nil {
+
+		return fmt.Errorf("When using the JSON decoder and multiline together, you need to specify a message_key value")
+	}
+
+	if config.Harvester.JSON != nil && len(config.Harvester.JSON.MessageKey) == 0 &&
+		(len(config.Harvester.IncludeLines) > 0 || len(config.Harvester.ExcludeLines) > 0) {
+
+		return fmt.Errorf("When using the JSON decoder and line filtering together, you need to specify a message_key value")
+	}
+
+	return nil
+}
+
+// Setup Harvester Config
+func (p *Prospector) setupHarvesterConfig() error {
+
+	var err error
+	config := &p.ProspectorConfig.Harvester
+
+	// Setup Buffer Size
+	if config.BufferSize <= 0 {
+		config.BufferSize = cfg.DefaultHarvesterBufferSize
+	}
+	logp.Info("buffer_size set to: %v", config.BufferSize)
+
+	// Setup DocumentType
+	if config.DocumentType == "" {
+		config.DocumentType = cfg.DefaultDocumentType
+	}
+	logp.Info("document_type set to: %v", config.DocumentType)
+
+	// Setup InputType
+	if _, ok := cfg.ValidInputType[config.InputType]; !ok {
+		logp.Info("Invalid input type set: %v", config.InputType)
+		config.InputType = cfg.DefaultInputType
+	}
+	logp.Info("input_type set to: %v", config.InputType)
+
+	config.BackoffDuration, err = getConfigDuration(config.Backoff, cfg.DefaultBackoff, "backoff")
+	if err != nil {
+		return err
+	}
+
+	// Setup Backoff factor
+	if config.BackoffFactor <= 0 {
+		config.BackoffFactor = cfg.DefaultBackoffFactor
+	}
+	logp.Info("backoff_factor set to: %v", config.BackoffFactor)
+
+	config.MaxBackoffDuration, err = getConfigDuration(config.MaxBackoff, cfg.DefaultMaxBackoff, "max_backoff")
+	if err != nil {
+		return err
+	}
+
+	if config.ForceCloseFiles {
+		logp.Info("force_close_file is enabled")
+	} else {
+		logp.Info("force_close_file is disabled")
+	}
+
+	config.CloseOlderDuration, err = getConfigDuration(config.CloseOlder, cfg.DefaultCloseOlderDuration, "close_older")
+	if err != nil {
+		return err
+	}
+
+	if config.MaxBytes <= 0 {
+		config.MaxBytes = cfg.DefaultMaxBytes
+	}
+	logp.Info("max_bytes set to: %v", config.MaxBytes)
+
+	return nil
+}
+
+// getConfigDuration builds the duration based on the input string.
+// Returns error if an invalid string duration is passed
+// In case no duration is set, default duration will be used.
+func getConfigDuration(config string, duration time.Duration, name string) (time.Duration, error) {
+
+	// Setup Ignore Older
+	if config != "" {
+		var err error
+		duration, err = time.ParseDuration(config)
+		if err != nil {
+			logp.Warn("Failed to parse %s value '%s'. Error was: %s\n", name, config)
+			return 0, err
+		}
+	}
+	logp.Info("Set %s duration to %s", name, duration)
+
+	return duration, nil
+}
+
+// isIgnoreOlder checks if the given state reached ignore_older
+func (p *Prospector) isIgnoreOlder(state input.FileState) bool {
+
+	// ignore_older is disable
+	if p.ProspectorConfig.IgnoreOlderDuration == 0 {
+		return false
+	}
+
+	modTime := state.Fileinfo.ModTime()
+
+	if time.Since(modTime) > p.ProspectorConfig.IgnoreOlderDuration {
+		return true
+	}
+
+	return false
+}

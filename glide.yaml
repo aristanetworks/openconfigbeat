@@ -1,9 +1,19 @@
-package: .
+package: github.com/aristanetworks/openconfigbeat
 import:
-- package: github.com/elastic/beats
-  version: 40146f0616ff4bce05acbc0435c9828aa435bfd3
+- package: github.com/aristanetworks/goarista
   subpackages:
-  - /libbeat/beat
-  - libbeat/cfgfile
+  - elasticsearch
+  - openconfig
+- package: github.com/elastic/beats
+  subpackages:
+  - libbeat/beat
   - libbeat/common
   - libbeat/logp
+  - libbeat/publisher
+- package: github.com/openconfig/reference
+  subpackages:
+  - rpc/openconfig
+- package: golang.org/x/net
+  subpackages:
+  - context
+- package: google.golang.org/grpc
