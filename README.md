@@ -1,6 +1,6 @@
 # Openconfigbeat
 
-Welcome to Openconfigbeat.
+Welcome to Openconfigbeat, the Beat for [OpenConfig](http://openconfig.net)-compatible network devices.
 
 Ensure that this folder is at the following location:
 `${GOPATH}/github.com/aristanetworks`
