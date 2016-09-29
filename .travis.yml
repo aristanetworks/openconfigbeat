@@ -9,6 +9,9 @@ os:
 - linux
 - osx
 env:
+  matrix:
+  - TARGETS="check"
+  - TARGETS="testsuite"
   global:
   - GOX_FLAGS="-arch amd64"
 addons:
@@ -22,7 +25,9 @@ before_install:
 - cd $HOME/gopath/src/github.com/aristanetworks/openconfigbeat
 - go get -v github.com/Masterminds/glide
 install:
-- make
+- true
+script:
+- make $TARGETS
 after_success: 
 notifications:
   slack:
