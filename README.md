@@ -12,6 +12,9 @@ Ensure that this folder is at the following location:
 * [Golang](https://golang.org/dl/) 1.6
 * [Glide](https://github.com/Masterminds/glide) >= 0.10.0
 
+### Configuration
+Edit `etc/beat.yml` with the appropriate configuration.
+
 ### Build
 
 To build the binary for Openconfigbeat run the command below. This will generate a binary
@@ -29,25 +32,6 @@ To run Openconfigbeat with debugging output enabled, run:
 ```
 ./openconfigbeat -c openconfigbeat.yml -e -d "*"
 ```
-
-
-### Test
-
-To test Openconfigbeat, run the following command:
-
-```
-make testsuite
-```
-
-alternatively:
-```
-make unit-tests
-make system-tests
-make integration-tests
-make coverage-report
-```
-
-The test coverage is reported in the folder `./build/coverage/`
 
 
 ### Package
