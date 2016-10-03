@@ -127,7 +127,8 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 	for _, addr := range bt.addresses {
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
-			return err
+			logp.Err("Failed to connect to %s: %s", addr, err.Error())
+			continue
 		}
 		logp.Info("Connected to %s", addr)
 		defer conn.Close()
@@ -136,7 +137,8 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 		// Subscribe
 		s, err := client.Subscribe(context.Background())
 		if err != nil {
-			return err
+			logp.Err("Failed to subscribe from %s: %s", addr, err.Error())
+			continue
 		}
 		defer s.CloseSend()
 		device, _, err := net.SplitHostPort(addr)
