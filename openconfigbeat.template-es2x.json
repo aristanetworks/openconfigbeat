@@ -24,9 +24,6 @@
             }
           }
         },
-        "counter": {
-          "type": "integer"
-        },
         "type": {
           "ignore_above": 1024,
           "index": "not_analyzed",

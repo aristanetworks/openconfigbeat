@@ -20,9 +20,6 @@
             }
           }
         },
-        "counter": {
-          "type": "integer"
-        },
         "type": {
           "ignore_above": 1024,
           "type": "keyword"
@@ -32,7 +29,9 @@
   },
   "order": 0,
   "settings": {
-    "index.refresh_interval": "5s"
+    "index.refresh_interval": "5s",
+    "index.mapping.total_fields.limit" : 100000,
+    "index.mapping.depth.limit" : 100
   },
   "template": "openconfigbeat-*"
 }
