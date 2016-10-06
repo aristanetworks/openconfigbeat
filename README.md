@@ -7,6 +7,49 @@ Welcome to Openconfigbeat, the Beat for [OpenConfig](http://openconfig.net)-comp
 Ensure that this folder is at the following location:
 `${GOPATH}/github.com/aristanetworks`
 
+Document example:
+
+```json
+{
+  "@timestamp": "2016-10-06T22:38:51.770Z",
+  "beat": {
+    "hostname": "beater",
+    "name": "openconfigbeat"
+  },
+  "dataset": "cairo",
+  "type": "openconfigbeat",
+  "update": {
+    "/": {
+      "openconfig-bgp:bgp": {
+        "global": {
+          "config": {
+            "as": 55064,
+            "router-id": "0.0.0.0"
+          },
+        },
+      },
+      "openconfig-vlan:vlans": {
+        "vlan": [
+          {
+            "config": {
+              "name": "default",
+              "status": "ACTIVE",
+              "tpid": "oc-vlan-types:TPID_0x8100",
+              "vlan-id": 1
+            },
+            "state": {
+              "status": "ACTIVE",
+              "tpid": "oc-vlan-types:TPID_0x8100"
+            },
+            "vlan-id": 1
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
 ## Getting Started with Openconfigbeat
 
 ### Requirements
