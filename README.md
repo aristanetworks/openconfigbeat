@@ -99,7 +99,7 @@ make
 
 Each beat has a template for the mapping in elasticsearch and a documentation for the fields
 which is automatically generated based on `etc/fields.yml`.
-To generate etc/openconfigbeat.template.json and etc/openconfigbeat.asciidoc
+To generate etc/openconfigbeat.template.json, etc/openconfigbeat.asciidoc and openconfigbeat.yml
 
 ```
 make update
