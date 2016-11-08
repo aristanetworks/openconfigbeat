@@ -75,7 +75,7 @@ make
 To run Openconfigbeat with debugging output enabled, run:
 
 ```
-./openconfigbeat -c openconfigbeat.yml -e -d "openconfigbeat.go"
+./openconfigbeat -e -d openconfigbeat.go
 ```
 
 
