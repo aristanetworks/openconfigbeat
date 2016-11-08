@@ -4,6 +4,12 @@
 
 package pathmap
 
+import (
+	"bytes"
+	"fmt"
+	"sort"
+)
+
 // PathMap associates Paths to a values. It allows wildcards. The
 // primary use of PathMap is to be able to register handlers to paths
 // that can be efficiently looked up every time a path is updated.
@@ -48,6 +54,19 @@ type PathMap interface {
 	// m.Visit({"foo", "bar"}, Printer)
 	// >> Calls Printer(1) and Printer(2)
 	Visit(path []string, f VisitorFunc) error
+
+	// VisitPrefix calls f for every registration in the PathMap that
+	// is a prefix of path. For example,
+	//
+	// m.Set({}, 0)
+	// m.Set({"foo"}, 1)
+	// m.Set({"foo", "bar"}, 2)
+	// m.Set({"foo", "quux"}, 3)
+	// m.Set({"*", "bar"}, 4)
+	//
+	// m.VisitPrefix({"foo", "bar", "baz"}, Printer)
+	// >> Calls Printer on values 0, 1, 2, and 4
+	VisitPrefix(path []string, f VisitorFunc) error
 
 	// Get returns the mapping for path. This returns the exact
 	// mapping for path. For example, if you register two paths
@@ -101,6 +120,34 @@ func (n *node) Visit(path []string, f VisitorFunc) error {
 	if n.val == nil {
 		return nil
 	}
+	return f(n.val)
+}
+
+// VisitPrefix calls f for every registered path that is a prefix of
+// the path
+func (n *node) VisitPrefix(path []string, f VisitorFunc) error {
+	for i, element := range path {
+		// Call f on each node we visit
+		if n.val != nil {
+			if err := f(n.val); err != nil {
+				return err
+			}
+		}
+		if n.wildcard != nil {
+			if err := n.wildcard.VisitPrefix(path[i+1:], f); err != nil {
+				return err
+			}
+		}
+		next, ok := n.children[element]
+		if !ok {
+			return nil
+		}
+		n = next
+	}
+	if n.val == nil {
+		return nil
+	}
+	// Call f on the final node
 	return f(n.val)
 }
 
@@ -184,4 +231,35 @@ func (n *node) Delete(path []string) bool {
 
 	}
 	return true
+}
+
+func (n *node) String() string {
+	var b bytes.Buffer
+	n.write(&b, "")
+	return b.String()
+}
+
+func (n *node) write(b *bytes.Buffer, indent string) {
+	if n.val != nil {
+		b.WriteString(indent)
+		fmt.Fprintf(b, "Val: %v", n.val)
+		b.WriteString("\n")
+	}
+	if n.wildcard != nil {
+		b.WriteString(indent)
+		fmt.Fprintf(b, "Child %q:\n", Wildcard)
+		n.wildcard.write(b, indent+"  ")
+	}
+	children := make([]string, 0, len(n.children))
+	for name := range n.children {
+		children = append(children, name)
+	}
+	sort.Strings(children)
+
+	for _, name := range children {
+		child := n.children[name]
+		b.WriteString(indent)
+		fmt.Fprintf(b, "Child %q:\n", name)
+		child.write(b, indent+"  ")
+	}
 }

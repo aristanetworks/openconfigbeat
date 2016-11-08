@@ -9,6 +9,8 @@ PREFIX?=.
 # Path to the libbeat Makefile
 -include $(ES_BEATS)/libbeat/scripts/Makefile
 
+.PHONY: collect
+
 .PHONY: update-deps
 update-deps:
 	glide update --no-recursive

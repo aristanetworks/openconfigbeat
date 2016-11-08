@@ -12,12 +12,11 @@ import (
 )
 
 const (
-	moduleName     = "mymodule"
-	metricSetName  = "mymetricset"
-	eventFieldName = moduleName + "-" + metricSetName
-	host           = "localhost"
-	elapsed        = time.Duration(500 * time.Millisecond)
-	tag            = "alpha"
+	moduleName    = "mymodule"
+	metricSetName = "mymetricset"
+	host          = "localhost"
+	elapsed       = time.Duration(500 * time.Millisecond)
+	tag           = "alpha"
 )
 
 var (
@@ -26,40 +25,42 @@ var (
 	tags      = []string{tag}
 )
 
-var builder = eventBuilder{
-	moduleName:    moduleName,
-	metricSetName: metricSetName,
+var builder = EventBuilder{
+	ModuleName:    moduleName,
+	MetricSetName: metricSetName,
 	// host
-	startTime:     startTime,
-	fetchDuration: elapsed,
+	StartTime:     startTime,
+	FetchDuration: elapsed,
 	// event
 	// fetchErr
-	// filters
+	// processors
 	// metadata
 }
 
 func TestEventBuilder(t *testing.T) {
 	b := builder
-	b.host = host
-	event, err := b.build()
+	b.Host = host
+	event, err := b.Build()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	assert.Equal(t, defaultType, event["type"])
-	assert.Equal(t, moduleName, event["module"])
-	assert.Equal(t, metricSetName, event["metricset"])
 	assert.Equal(t, common.Time(startTime), event["@timestamp"])
-	assert.Equal(t, int64(500000), event["rtt"])
-	assert.Equal(t, host, event["metricset-host"])
-	assert.Equal(t, common.MapStr{}, event[eventFieldName])
+
+	metricset := event["metricset"].(common.MapStr)
+	assert.Equal(t, moduleName, metricset["module"])
+	assert.Equal(t, metricSetName, metricset["name"])
+	assert.Equal(t, int64(500000), metricset["rtt"])
+	assert.Equal(t, host, metricset["host"])
+	assert.Equal(t, common.MapStr{}, event[moduleName].(common.MapStr)[metricSetName])
 	assert.Nil(t, event["error"])
 }
 
 func TestEventBuilderError(t *testing.T) {
 	b := builder
 	b.fetchErr = errFetch
-	event, err := b.build()
+	event, err := b.Build()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +70,7 @@ func TestEventBuilderError(t *testing.T) {
 
 func TestEventBuilderNoHost(t *testing.T) {
 	b := builder
-	event, err := b.build()
+	event, err := b.Build()
 	if err != nil {
 		t.Fatal(err)
 	}

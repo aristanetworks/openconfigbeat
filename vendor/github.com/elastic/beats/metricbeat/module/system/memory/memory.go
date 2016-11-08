@@ -1,11 +1,12 @@
-// +build darwin linux openbsd windows
+// +build darwin freebsd linux openbsd windows
+
+// +build darwin freebsd linux openbsd windows
 
 package memory
 
 import (
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/metricbeat/mb"
-	"github.com/elastic/beats/topbeat/system"
 
 	"github.com/pkg/errors"
 )
@@ -28,20 +29,43 @@ func New(base mb.BaseMetricSet) (mb.MetricSet, error) {
 
 // Fetch fetches memory metrics from the OS.
 func (m *MetricSet) Fetch() (event common.MapStr, err error) {
-	memStat, err := system.GetMemory()
+	memStat, err := GetMemory()
 	if err != nil {
 		return nil, errors.Wrap(err, "memory")
 	}
-	system.AddMemPercentage(memStat)
+	AddMemPercentage(memStat)
 
-	swapStat, err := system.GetSwap()
+	swapStat, err := GetSwap()
 	if err != nil {
 		return nil, errors.Wrap(err, "swap")
 	}
-	system.AddSwapPercentage(swapStat)
+	AddSwapPercentage(swapStat)
 
-	return common.MapStr{
-		"mem":  system.GetMemoryEvent(memStat),
-		"swap": system.GetSwapEvent(swapStat),
-	}, nil
+	memory := common.MapStr{
+		"total": memStat.Total,
+		"used": common.MapStr{
+			"bytes": memStat.Used,
+			"pct":   memStat.UsedPercent,
+		},
+		"free": memStat.Free,
+		"actual": common.MapStr{
+			"free": memStat.ActualFree,
+			"used": common.MapStr{
+				"pct":   memStat.ActualUsedPercent,
+				"bytes": memStat.ActualUsed,
+			},
+		},
+	}
+
+	swap := common.MapStr{
+		"total": swapStat.Total,
+		"used": common.MapStr{
+			"bytes": swapStat.Used,
+			"pct":   swapStat.UsedPercent,
+		},
+		"free": swapStat.Free,
+	}
+
+	memory["swap"] = swap
+	return memory, nil
 }

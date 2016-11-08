@@ -6,16 +6,18 @@
           "enabled": false
         }
       },
+      "_meta": {
+        "version": "6.0.0-alpha1"
+      },
       "dynamic_templates": [
         {
-          "fields": {
+          "strings_as_keyword": {
             "mapping": {
               "ignore_above": 1024,
               "index": "not_analyzed",
               "type": "string"
             },
-            "match_mapping_type": "string",
-            "path_match": "fields.*"
+            "match_mapping_type": "string"
           }
         }
       ],
@@ -34,6 +36,11 @@
               "ignore_above": 1024,
               "index": "not_analyzed",
               "type": "string"
+            },
+            "version": {
+              "ignore_above": 1024,
+              "index": "not_analyzed",
+              "type": "string"
             }
           }
         },
@@ -49,10 +56,53 @@
           },
           "type": "string"
         },
+        "meta": {
+          "properties": {
+            "cloud": {
+              "properties": {
+                "availability_zone": {
+                  "ignore_above": 1024,
+                  "index": "not_analyzed",
+                  "type": "string"
+                },
+                "instance_id": {
+                  "ignore_above": 1024,
+                  "index": "not_analyzed",
+                  "type": "string"
+                },
+                "machine_type": {
+                  "ignore_above": 1024,
+                  "index": "not_analyzed",
+                  "type": "string"
+                },
+                "project_id": {
+                  "ignore_above": 1024,
+                  "index": "not_analyzed",
+                  "type": "string"
+                },
+                "provider": {
+                  "ignore_above": 1024,
+                  "index": "not_analyzed",
+                  "type": "string"
+                },
+                "region": {
+                  "ignore_above": 1024,
+                  "index": "not_analyzed",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
         "offset": {
           "type": "long"
         },
         "source": {
+          "ignore_above": 1024,
+          "index": "not_analyzed",
+          "type": "string"
+        },
+        "tags": {
           "ignore_above": 1024,
           "index": "not_analyzed",
           "type": "string"

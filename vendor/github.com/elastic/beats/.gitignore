@@ -2,12 +2,15 @@
 /.vagrant
 /.idea
 /build
+/*/data
+/*/logs
 
 # Files
 .DS_Store
 /glide.lock
 /beats.iml
 *.dev.yml
+*.generated.yml
 
 # Editor swap files
 *.swp

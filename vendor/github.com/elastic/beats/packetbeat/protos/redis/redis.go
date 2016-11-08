@@ -2,6 +2,7 @@ package redis
 
 import (
 	"bytes"
+	"expvar"
 	"time"
 
 	"github.com/elastic/beats/libbeat/common"
@@ -17,7 +18,7 @@ import (
 type stream struct {
 	applayer.Stream
 	parser   parser
-	tcptuple *common.TcpTuple
+	tcptuple *common.TCPTuple
 }
 
 type redisConnectionData struct {
@@ -45,6 +46,10 @@ type Redis struct {
 var (
 	debugf  = logp.MakeDebug("redis")
 	isDebug = false
+)
+
+var (
+	unmatchedResponses = expvar.NewInt("redis.unmatched_responses")
 )
 
 func init() {
@@ -102,7 +107,7 @@ func (redis *Redis) ConnectionTimeout() time.Duration {
 
 func (redis *Redis) Parse(
 	pkt *protos.Packet,
-	tcptuple *common.TcpTuple,
+	tcptuple *common.TCPTuple,
 	dir uint8,
 	private protos.ProtocolData,
 ) protos.ProtocolData {
@@ -137,7 +142,7 @@ func ensureRedisConnection(private protos.ProtocolData) *redisConnectionData {
 func (redis *Redis) doParse(
 	conn *redisConnectionData,
 	pkt *protos.Packet,
-	tcptuple *common.TcpTuple,
+	tcptuple *common.TCPTuple,
 	dir uint8,
 ) *redisConnectionData {
 
@@ -198,12 +203,12 @@ func (redis *Redis) doParse(
 	return conn
 }
 
-func newStream(ts time.Time, tcptuple *common.TcpTuple) *stream {
+func newStream(ts time.Time, tcptuple *common.TCPTuple) *stream {
 	s := &stream{
 		tcptuple: tcptuple,
 	}
 	s.parser.message = newMessage(ts)
-	s.Stream.Init(tcp.TCP_MAX_DATA_IN_STREAM)
+	s.Stream.Init(tcp.TCPMaxDataInStream)
 	return s
 }
 
@@ -214,12 +219,12 @@ func newMessage(ts time.Time) *redisMessage {
 func (redis *Redis) handleRedis(
 	conn *redisConnectionData,
 	m *redisMessage,
-	tcptuple *common.TcpTuple,
+	tcptuple *common.TCPTuple,
 	dir uint8,
 ) {
-	m.TcpTuple = *tcptuple
+	m.TCPTuple = *tcptuple
 	m.Direction = dir
-	m.CmdlineTuple = procs.ProcWatcher.FindProcessesTuple(tcptuple.IpPort())
+	m.CmdlineTuple = procs.ProcWatcher.FindProcessesTuple(tcptuple.IPPort())
 
 	if m.IsRequest {
 		conn.requests.append(m) // wait for response
@@ -233,7 +238,8 @@ func (redis *Redis) correlate(conn *redisConnectionData) {
 	// drop responses with missing requests
 	if conn.requests.empty() {
 		for !conn.responses.empty() {
-			logp.Warn("Response from unknown transaction. Ignoring")
+			debugf("Response from unknown transaction. Ignoring")
+			unmatchedResponses.Add(1)
 			conn.responses.pop()
 		}
 		return
@@ -269,16 +275,16 @@ func (redis *Redis) newTransaction(requ, resp *redisMessage) common.MapStr {
 	}
 
 	src := &common.Endpoint{
-		Ip:   requ.TcpTuple.Src_ip.String(),
-		Port: requ.TcpTuple.Src_port,
+		IP:   requ.TCPTuple.SrcIP.String(),
+		Port: requ.TCPTuple.SrcPort,
 		Proc: string(requ.CmdlineTuple.Src),
 	}
 	dst := &common.Endpoint{
-		Ip:   requ.TcpTuple.Dst_ip.String(),
-		Port: requ.TcpTuple.Dst_port,
+		IP:   requ.TCPTuple.DstIP.String(),
+		Port: requ.TCPTuple.DstPort,
 		Proc: string(requ.CmdlineTuple.Dst),
 	}
-	if requ.Direction == tcp.TcpDirectionReverse {
+	if requ.Direction == tcp.TCPDirectionReverse {
 		src, dst = dst, src
 	}
 
@@ -309,7 +315,7 @@ func (redis *Redis) newTransaction(requ, resp *redisMessage) common.MapStr {
 	return event
 }
 
-func (redis *Redis) GapInStream(tcptuple *common.TcpTuple, dir uint8,
+func (redis *Redis) GapInStream(tcptuple *common.TCPTuple, dir uint8,
 	nbytes int, private protos.ProtocolData) (priv protos.ProtocolData, drop bool) {
 
 	// tsg: being packet loss tolerant is probably not very useful for Redis,
@@ -318,7 +324,7 @@ func (redis *Redis) GapInStream(tcptuple *common.TcpTuple, dir uint8,
 	return private, true
 }
 
-func (redis *Redis) ReceivedFin(tcptuple *common.TcpTuple, dir uint8,
+func (redis *Redis) ReceivedFin(tcptuple *common.TCPTuple, dir uint8,
 	private protos.ProtocolData) protos.ProtocolData {
 
 	// TODO: check if we have pending data that we can send up the stack

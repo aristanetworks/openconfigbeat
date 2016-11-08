@@ -39,7 +39,8 @@ func init() {
 // MetricSet for fetching Apache HTTPD server status.
 type MetricSet struct {
 	mb.BaseMetricSet
-	url string // Endpoint URL.
+	client *http.Client // HTTP client that is reused across requests.
+	url    string       // Apache HTTP server status endpoint URL.
 }
 
 // New creates new instance of MetricSet.
@@ -67,6 +68,7 @@ func New(base mb.BaseMetricSet) (mb.MetricSet, error) {
 	return &MetricSet{
 		BaseMetricSet: base,
 		url:           u.String(),
+		client:        &http.Client{Timeout: base.Module().Config().Timeout},
 	}, nil
 }
 
@@ -74,8 +76,7 @@ func New(base mb.BaseMetricSet) (mb.MetricSet, error) {
 // endpoint.
 func (m *MetricSet) Fetch() (common.MapStr, error) {
 	req, err := http.NewRequest("GET", m.url, nil)
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := m.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error making http request: %v", err)
 	}
@@ -85,7 +86,7 @@ func (m *MetricSet) Fetch() (common.MapStr, error) {
 		return nil, fmt.Errorf("HTTP error %d: %s", resp.StatusCode, resp.Status)
 	}
 
-	return eventMapping(resp.Body, m.Host(), m.Name()), nil
+	return eventMapping(resp.Body, m.Host()), nil
 }
 
 // getURL constructs a URL from the rawHost value and adds the provided user,
@@ -98,7 +99,7 @@ func getURL(user, password, statusPath, rawHost string) (*url.URL, error) {
 
 	if u.Scheme == "" {
 		// Add scheme and re-parse.
-		u, err = url.Parse(fmt.Sprintf("%s://%s", "http", rawHost))
+		u, err = url.Parse(fmt.Sprintf("%s://%s", defaultScheme, rawHost))
 		if err != nil {
 			return nil, fmt.Errorf("error parsing apache host: %v", err)
 		}
@@ -126,7 +127,7 @@ func getURL(user, password, statusPath, rawHost string) (*url.URL, error) {
 	// Add the 'auto' query parameter so that server-status returns
 	// machine readable output.
 	query := u.Query()
-	query.Set("auto", "")
+	query.Set(autoQueryParam, "")
 	u.RawQuery = query.Encode()
 
 	return u, nil

@@ -4,7 +4,9 @@ package elasticsearch
 import (
 	"os"
 	"testing"
+	"time"
 
+	"github.com/elastic/beats/libbeat/outputs/outil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,7 +38,11 @@ func GetTestingElasticsearch() *Client {
 	var address = "http://" + GetEsHost() + ":" + GetEsPort()
 	username := os.Getenv("ES_USER")
 	pass := os.Getenv("ES_PASS")
-	return NewClient(address, "", nil, nil, username, pass, nil, nil)
+	client := newTestClientAuth(address, username, pass)
+
+	// Load version number
+	client.Connect(3 * time.Second)
+	return client
 }
 
 func GetValidQueryResult() QueryResult {
@@ -161,4 +167,23 @@ func TestReadSearchResult_invalid(t *testing.T) {
 	results, err := readSearchResult(json)
 	assert.Nil(t, results)
 	assert.Error(t, err)
+}
+
+func newTestClient(url string) *Client {
+	return newTestClientAuth(url, "", "")
+}
+
+func newTestClientAuth(url, user, pass string) *Client {
+	client, err := NewClient(ClientSettings{
+		URL:              url,
+		Index:            outil.MakeSelector(),
+		Username:         user,
+		Password:         pass,
+		Timeout:          60 * time.Second,
+		CompressionLevel: 3,
+	}, nil)
+	if err != nil {
+		panic(err)
+	}
+	return client
 }

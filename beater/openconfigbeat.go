@@ -34,44 +34,31 @@ type Openconfigbeat struct {
 }
 
 // Creates beater
-func New() *Openconfigbeat {
+func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
+	conf := config.DefaultConfig
+	err := b.RawConfig.Unpack(&conf)
+	if err != nil {
+		return nil, fmt.Errorf("Error reading config file: %v", err)
+	}
+	addresses := *conf.Addresses
+	var paths []*pb.Path
+	if conf.Paths == nil {
+		paths = []*pb.Path{&pb.Path{Element: []string{"/"}}}
+	} else {
+		for _, path := range *conf.Paths {
+			paths = append(paths, &pb.Path{Element: strings.Split(path, "/")})
+		}
+	}
 	return &Openconfigbeat{
+		addresses:        addresses,
+		paths:            paths,
 		done:             make(chan struct{}),
 		subscribeClients: make(map[string]pb.OpenConfig_SubscribeClient),
 		events:           make(chan common.MapStr),
-	}
+	}, nil
 }
 
 /// *** Beater interface methods ***///
-
-func (bt *Openconfigbeat) Config(b *beat.Beat) error {
-
-	// Load beater beatConfig
-	err := b.RawConfig.Unpack(&bt.beatConfig)
-	if err != nil {
-		return fmt.Errorf("Error reading config file: %v", err)
-	}
-
-	config := bt.beatConfig.Openconfigbeat
-	bt.addresses = *config.Addresses
-	if config.Paths == nil {
-		bt.paths = []*pb.Path{&pb.Path{Element: []string{"/"}}}
-	} else {
-		for _, path := range *config.Paths {
-			bt.paths = append(bt.paths,
-				&pb.Path{Element: strings.Split(path, "/")})
-		}
-	}
-
-	return nil
-}
-
-func (bt *Openconfigbeat) Setup(b *beat.Beat) error {
-
-	bt.client = b.Publisher.Connect()
-
-	return nil
-}
 
 // recv listens for SubscribeResponse notifications on a stream, and publishes the
 // JSON representation of the notifications it receives on a channel
@@ -122,6 +109,9 @@ func (bt *Openconfigbeat) recvAll() {
 
 func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 	logp.Info("openconfigbeat is running! Hit CTRL-C to stop it.")
+
+	// Connect to elastisearch
+	bt.client = b.Publisher.Connect()
 
 	// Connect the OpenConfig client
 	for _, addr := range bt.addresses {
@@ -180,10 +170,6 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 			}
 		}
 	}
-}
-
-func (bt *Openconfigbeat) Cleanup(b *beat.Beat) error {
-	return nil
 }
 
 func (bt *Openconfigbeat) Stop() {

@@ -15,6 +15,9 @@ import (
 
 // joinPath builds a string out of an Element
 func joinPath(path *openconfig.Path) string {
+	if path == nil {
+		return ""
+	}
 	return strings.Join(path.Element, "/")
 }
 
@@ -111,7 +114,7 @@ func escapeValue(value interface{}, escape EscapeFunc) interface{} {
 func addPathToMap(root map[string]interface{}, path []string, escape EscapeFunc) (
 	map[string]interface{}, error) {
 	parent := root
-	for _, element := range path[:len(path)] {
+	for _, element := range path {
 		k := escape(element)
 		node, found := parent[k]
 		if !found {
@@ -153,7 +156,10 @@ func NotificationToMap(addr string, notification *openconfig.Notification,
 			}
 		}
 		for _, delete := range notificationDeletes {
-			addPathToMap(node, delete.Element, escape)
+			_, err := addPathToMap(node, delete.Element, escape)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -171,6 +177,7 @@ func NotificationToMap(addr string, notification *openconfig.Notification,
 			}
 		}
 		for _, update := range notificationUpdates {
+			updateNode := node
 			path := update.GetPath()
 			elementLen := len(path.Element)
 
@@ -178,7 +185,7 @@ func NotificationToMap(addr string, notification *openconfig.Notification,
 			if elementLen > 1 {
 				parentElements := path.Element[:elementLen-1]
 				var err error
-				node, err = addPathToMap(node, parentElements, escape)
+				updateNode, err = addPathToMap(updateNode, parentElements, escape)
 				if err != nil {
 					return nil, err
 				}
@@ -198,8 +205,8 @@ func NotificationToMap(addr string, notification *openconfig.Notification,
 				return nil, fmt.Errorf("Unexpected value type %s for path %v",
 					value.Type, path)
 			}
-			node[escape(path.Element[elementLen-1])] = escapeValue(unmarshaledValue,
-				escape)
+			updateNode[escape(path.Element[elementLen-1])] = escapeValue(
+				unmarshaledValue, escape)
 		}
 	}
 

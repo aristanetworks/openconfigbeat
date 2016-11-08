@@ -8,7 +8,11 @@ import (
 	"time"
 
 	"github.com/elastic/beats/libbeat/common"
-	"github.com/elastic/beats/libbeat/filter"
+	"github.com/elastic/beats/libbeat/processors"
+)
+
+const (
+	ModuleData string = "_module"
 )
 
 // Module interfaces
@@ -100,13 +104,13 @@ func (b *BaseMetricSet) Host() string {
 
 // ModuleConfig is the base configuration data for all Modules.
 type ModuleConfig struct {
-	Hosts      []string              `config:"hosts"`
-	Period     time.Duration         `config:"period"     validate:"positive"`
-	Timeout    time.Duration         `config:"timeout"    validate:"positive"`
-	Module     string                `config:"module"     validate:"required"`
-	MetricSets []string              `config:"metricsets" validate:"required"`
-	Enabled    bool                  `config:"enabled"`
-	Filters    []filter.FilterConfig `config:"filters"`
+	Hosts      []string                `config:"hosts"`
+	Period     time.Duration           `config:"period"     validate:"positive"`
+	Timeout    time.Duration           `config:"timeout"    validate:"positive"`
+	Module     string                  `config:"module"     validate:"required"`
+	MetricSets []string                `config:"metricsets" validate:"required"`
+	Enabled    bool                    `config:"enabled"`
+	Filters    processors.PluginConfig `config:"filters"`
 
 	common.EventMetadata `config:",inline"` // Fields and tags to add to events.
 }
@@ -114,6 +118,11 @@ type ModuleConfig struct {
 // defaultModuleConfig contains the default values for ModuleConfig instances.
 var defaultModuleConfig = ModuleConfig{
 	Enabled: true,
-	Period:  time.Second,
+	Period:  time.Second * 10,
 	Timeout: time.Second,
+}
+
+// DefaultModuleConfig returns a ModuleConfig with the default values populated.
+func DefaultModuleConfig() ModuleConfig {
+	return defaultModuleConfig
 }

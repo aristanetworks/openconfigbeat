@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	err := beat.Run("openconfigbeat", "", beater.New())
+	err := beat.Run("openconfigbeat", "", beater.New)
 	if err != nil {
 		os.Exit(1)
 	}

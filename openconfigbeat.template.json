@@ -4,6 +4,20 @@
       "_all": {
         "norms": false
       },
+      "_meta": {
+        "version": "6.0.0-alpha1"
+      },
+      "dynamic_templates": [
+        {
+          "strings_as_keyword": {
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "match_mapping_type": "string"
+          }
+        }
+      ],
       "properties": {
         "@timestamp": {
           "type": "date"
@@ -17,10 +31,46 @@
             "name": {
               "ignore_above": 1024,
               "type": "keyword"
+            },
+            "version": {
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         },
-        "type": {
+        "meta": {
+          "properties": {
+            "cloud": {
+              "properties": {
+                "availability_zone": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "instance_id": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "machine_type": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "project_id": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "provider": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "region": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            }
+          }
+        },
+        "tags": {
           "ignore_above": 1024,
           "type": "keyword"
         }
@@ -29,9 +79,7 @@
   },
   "order": 0,
   "settings": {
-    "index.refresh_interval": "5s",
-    "index.mapping.total_fields.limit" : 100000,
-    "index.mapping.depth.limit" : 100
+    "index.refresh_interval": "5s"
   },
   "template": "openconfigbeat-*"
 }

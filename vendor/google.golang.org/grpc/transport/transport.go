@@ -39,7 +39,6 @@ package transport // import "google.golang.org/grpc/transport"
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -50,6 +49,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/tap"
 )
 
 // recvMsg represents the received msg from the transport. All transport
@@ -287,19 +287,30 @@ func (s *Stream) StatusDesc() string {
 	return s.statusDesc
 }
 
-// ErrIllegalTrailerSet indicates that the trailer has already been set or it
-// is too late to do so.
-var ErrIllegalTrailerSet = errors.New("transport: trailer has been set")
-
-// SetTrailer sets the trailer metadata which will be sent with the RPC status
-// by the server. This can only be called at most once. Server side only.
-func (s *Stream) SetTrailer(md metadata.MD) error {
+// SetHeader sets the header metadata. This can be called multiple times.
+// Server side only.
+func (s *Stream) SetHeader(md metadata.MD) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.trailer != nil {
-		return ErrIllegalTrailerSet
+	if s.headerOk || s.state == streamDone {
+		return ErrIllegalHeaderWrite
 	}
-	s.trailer = md.Copy()
+	if md.Len() == 0 {
+		return nil
+	}
+	s.header = metadata.Join(s.header, md)
+	return nil
+}
+
+// SetTrailer sets the trailer metadata which will be sent with the RPC status
+// by the server. This can be called multiple times. Server side only.
+func (s *Stream) SetTrailer(md metadata.MD) error {
+	if md.Len() == 0 {
+		return nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.trailer = metadata.Join(s.trailer, md)
 	return nil
 }
 
@@ -345,13 +356,20 @@ const (
 	draining
 )
 
-// NewServerTransport creates a ServerTransport with conn or non-nil error
-// if it fails.
-func NewServerTransport(protocol string, conn net.Conn, maxStreams uint32, authInfo credentials.AuthInfo) (ServerTransport, error) {
-	return newHTTP2Server(conn, maxStreams, authInfo)
+// ServerConfig consists of all the configurations to establish a server transport.
+type ServerConfig struct {
+	MaxStreams  uint32
+	AuthInfo    credentials.AuthInfo
+	InTapHandle tap.ServerInHandle
 }
 
-// ConnectOptions covers all relevant options for dialing a server.
+// NewServerTransport creates a ServerTransport with conn or non-nil error
+// if it fails.
+func NewServerTransport(protocol string, conn net.Conn, config *ServerConfig) (ServerTransport, error) {
+	return newHTTP2Server(conn, config)
+}
+
+// ConnectOptions covers all relevant options for communicating with the server.
 type ConnectOptions struct {
 	// UserAgent is the application user agent.
 	UserAgent string
@@ -363,9 +381,15 @@ type ConnectOptions struct {
 	TransportCredentials credentials.TransportCredentials
 }
 
+// TargetInfo contains the information of the target such as network address and metadata.
+type TargetInfo struct {
+	Addr     string
+	Metadata interface{}
+}
+
 // NewClientTransport establishes the transport with the required ConnectOptions
 // and returns it to the caller.
-func NewClientTransport(ctx context.Context, target string, opts ConnectOptions) (ClientTransport, error) {
+func NewClientTransport(ctx context.Context, target TargetInfo, opts ConnectOptions) (ClientTransport, error) {
 	return newHTTP2Client(ctx, target, opts)
 }
 

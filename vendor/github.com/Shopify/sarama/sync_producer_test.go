@@ -7,8 +7,8 @@ import (
 )
 
 func TestSyncProducer(t *testing.T) {
-	seedBroker := newMockBroker(t, 1)
-	leader := newMockBroker(t, 2)
+	seedBroker := NewMockBroker(t, 1)
+	leader := NewMockBroker(t, 2)
 
 	metadataResponse := new(MetadataResponse)
 	metadataResponse.AddBroker(leader.Addr(), leader.BrokerID())
@@ -54,9 +54,56 @@ func TestSyncProducer(t *testing.T) {
 	seedBroker.Close()
 }
 
+func TestSyncProducerBatch(t *testing.T) {
+	seedBroker := NewMockBroker(t, 1)
+	leader := NewMockBroker(t, 2)
+
+	metadataResponse := new(MetadataResponse)
+	metadataResponse.AddBroker(leader.Addr(), leader.BrokerID())
+	metadataResponse.AddTopicPartition("my_topic", 0, leader.BrokerID(), nil, nil, ErrNoError)
+	seedBroker.Returns(metadataResponse)
+
+	prodSuccess := new(ProduceResponse)
+	prodSuccess.AddTopicPartition("my_topic", 0, ErrNoError)
+	leader.Returns(prodSuccess)
+
+	config := NewConfig()
+	config.Producer.Flush.Messages = 3
+	producer, err := NewSyncProducer([]string{seedBroker.Addr()}, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = producer.SendMessages([]*ProducerMessage{
+		&ProducerMessage{
+			Topic:    "my_topic",
+			Value:    StringEncoder(TestMessage),
+			Metadata: "test",
+		},
+		&ProducerMessage{
+			Topic:    "my_topic",
+			Value:    StringEncoder(TestMessage),
+			Metadata: "test",
+		},
+		&ProducerMessage{
+			Topic:    "my_topic",
+			Value:    StringEncoder(TestMessage),
+			Metadata: "test",
+		},
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	safeClose(t, producer)
+	leader.Close()
+	seedBroker.Close()
+}
+
 func TestConcurrentSyncProducer(t *testing.T) {
-	seedBroker := newMockBroker(t, 1)
-	leader := newMockBroker(t, 2)
+	seedBroker := NewMockBroker(t, 1)
+	leader := NewMockBroker(t, 2)
 
 	metadataResponse := new(MetadataResponse)
 	metadataResponse.AddBroker(leader.Addr(), leader.BrokerID())
@@ -98,7 +145,7 @@ func TestConcurrentSyncProducer(t *testing.T) {
 }
 
 func TestSyncProducerToNonExistingTopic(t *testing.T) {
-	broker := newMockBroker(t, 1)
+	broker := NewMockBroker(t, 1)
 
 	metadataResponse := new(MetadataResponse)
 	metadataResponse.AddBroker(broker.Addr(), broker.BrokerID())

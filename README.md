@@ -78,6 +78,16 @@ To run Openconfigbeat with debugging output enabled, run:
 ./openconfigbeat -e -d openconfigbeat.go
 ```
 
+To override any part of the configuration you can use `-E`, for example:
+```
+./openconfigbeat -E addresses=arista:6042 -E output.elasticsearch.hosts=elasticsearch
+```
+
+To run as a container:
+
+```
+docker run aristanetworks/openconfigbeat -E addresses=arista:6042 -E output.elasticsearch.hosts=elasticsearch
+```
 
 ### Package
 

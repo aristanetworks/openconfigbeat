@@ -6,13 +6,6 @@ http://dev.mysql.com/doc/refman/5.7/en/show-status.html
 */
 package status
 
-/*
-TODO @ruflin, 20160315
- * Complete fields read
- * Complete template
- * Complete dashboards
-*/
-
 import (
 	"database/sql"
 
@@ -45,8 +38,9 @@ type MetricSet struct {
 func New(base mb.BaseMetricSet) (mb.MetricSet, error) {
 	// Unpack additional configuration options.
 	config := struct {
-		Username string `config:"username"`
-		Password string `config:"password"`
+		Hosts    []string `config:"hosts"    validate:"nonzero,required"`
+		Username string   `config:"username"`
+		Password string   `config:"password"`
 	}{
 		Username: "",
 		Password: "",
@@ -56,8 +50,11 @@ func New(base mb.BaseMetricSet) (mb.MetricSet, error) {
 		return nil, err
 	}
 
-	// TODO (akroh): Apply validation to the mysql DSN format.
-	dsn := mysql.CreateDSN(base.Host(), config.Username, config.Password)
+	// Create and validate the data source name.
+	dsn, err := mysql.CreateDSN(base.Host(), config.Username, config.Password, base.Module().Config().Timeout)
+	if err != nil {
+		return nil, err
+	}
 
 	return &MetricSet{
 		BaseMetricSet: base,
@@ -69,9 +66,9 @@ func New(base mb.BaseMetricSet) (mb.MetricSet, error) {
 func (m *MetricSet) Fetch() (event common.MapStr, err error) {
 	if m.db == nil {
 		var err error
-		m.db, err = mysql.Connect(m.dsn)
+		m.db, err = mysql.NewDB(m.dsn)
 		if err != nil {
-			return nil, errors.Wrap(err, "mysql-status connect to host")
+			return nil, errors.Wrap(err, "mysql-status fetch failed")
 		}
 	}
 
@@ -90,6 +87,7 @@ func (m *MetricSet) loadStatus(db *sql.DB) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	mysqlStatus := map[string]string{}
 

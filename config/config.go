@@ -13,15 +13,13 @@ import (
 )
 
 type Config struct {
-	Openconfigbeat OpenconfigbeatConfig
-}
-
-type OpenconfigbeatConfig struct {
 	Addresses *[]string `config:"addresses"`
 	Paths     *[]string `config:"paths"`
 }
 
-func (c *OpenconfigbeatConfig) Validate() error {
+var DefaultConfig = Config{}
+
+func (c *Config) Validate() error {
 	if c.Addresses == nil || len(*c.Addresses) == 0 {
 		return errors.New("Please specify at least a device to connect to in 'addresses'")
 	}

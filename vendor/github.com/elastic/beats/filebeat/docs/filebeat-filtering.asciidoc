@@ -1,10 +1,11 @@
-[[filtering-data]]
-=== Filtering the Exported Data
+[[filtering-and-enhancing-data]]
+== Filtering and Enhancing the Exported Data
 
-When your use case requires only a subset of the data exported by Filebeat, you can <<filebeat-filtering-overview,use Filebeat config options to filter the data>>, or you can <<generic-filtering-overview-filebeat,use the generic filtering provided by libbeat>>.
+When your use case requires only a subset of the data exported by Filebeat or you need to add metadata, you can <<filebeat-filtering-overview,use Filebeat config options to filter the data>>, or you can  <<defining-processors,define processors>>.
 
+[float]
 [[filebeat-filtering-overview]]
-==== Filebeat Config Options for Filtering
+=== Filebeat Config Options for Filtering
 
 You can specify configuration options in the `filebeat` section of the config file to define regular expressions that
 match the lines you want to include and/or exclude from the output. The supported options are <<include-lines,`include_lines`>>, <<exclude-lines,`exclude_lines`>>, and <<exclude-files,`exclude_files`>>.
@@ -13,30 +14,43 @@ For example, you can use the `include_lines` option to export any lines that sta
 
 [source,yaml]
 -------------------------------------------------------------------------------------
-filebeat:
-  prospectors:
-    - paths:
-        - /var/log/myapp/*.log
-      include_lines: ["^ERR", "^WARN"]
+filebeat.prospectors:
+- input_type: log
+  paths:
+    - /var/log/myapp/*.log
+  include_lines: ["^ERR", "^WARN"]
 -------------------------------------------------------------------------------------
 
 The disadvantage of this approach is that you need to implement a configuration option for each filtering criteria that you need.
 
 See <<configuration-filebeat-options,Filebeat configuration options>> for more information about each option.
 
-[[generic-filtering-overview-filebeat]]
-==== Generic Filtering
+[float]
+[[defining-processors]]
+=== Defining Processors
 
-include::../../libbeat/docs/filtering.asciidoc[]
+include::../../libbeat/docs/processors.asciidoc[]
 
-For example, the following filter configuration exports fewer fields (in this case, `message` and `source`) along
-with the mandatory fields.
+For example, the following configuration drops all the DEBUG messages.
 
-[source, yaml]
+[source,yaml]
 -----------------------------------------------------
-filters:
- - include_fields:
-     fields: ["message", "source"]
+processors:
+ - drop_event:
+     when:
+        regexp:
+           message: "^DBG:"
 -----------------------------------------------------
 
-See <<configuration-filter,filter configuration options>> for more information.
+To drop all the log messages coming from a certain log file:
+
+[source,yaml]
+----------------
+processors:
+ - drop_event:
+     when:
+        contains:
+           source: "test"
+----------------
+
+See <<configuration-processors>> for more information.

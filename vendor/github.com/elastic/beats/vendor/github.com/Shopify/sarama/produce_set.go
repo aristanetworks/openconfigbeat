@@ -52,7 +52,16 @@ func (ps *produceSet) add(msg *ProducerMessage) error {
 	}
 
 	set.msgs = append(set.msgs, msg)
-	set.setToSend.addMessage(&Message{Codec: CompressionNone, Key: key, Value: val})
+	msgToSend := &Message{Codec: CompressionNone, Key: key, Value: val}
+	if ps.parent.conf.Version.IsAtLeast(V0_10_0_0) {
+		if msg.Timestamp.IsZero() {
+			msgToSend.Timestamp = time.Now()
+		} else {
+			msgToSend.Timestamp = msg.Timestamp
+		}
+		msgToSend.Version = 1
+	}
+	set.setToSend.addMessage(msgToSend)
 
 	size := producerMessageOverhead + len(key) + len(val)
 	set.bufferBytes += size
@@ -66,6 +75,9 @@ func (ps *produceSet) buildRequest() *ProduceRequest {
 	req := &ProduceRequest{
 		RequiredAcks: ps.parent.conf.Producer.RequiredAcks,
 		Timeout:      int32(ps.parent.conf.Producer.Timeout / time.Millisecond),
+	}
+	if ps.parent.conf.Version.IsAtLeast(V0_10_0_0) {
+		req.Version = 2
 	}
 
 	for topic, partitionSet := range ps.msgs {
@@ -82,11 +94,16 @@ func (ps *produceSet) buildRequest() *ProduceRequest {
 					Logger.Println(err) // if this happens, it's basically our fault.
 					panic(err)
 				}
-				req.AddMessage(topic, partition, &Message{
+				compMsg := &Message{
 					Codec: ps.parent.conf.Producer.Compression,
 					Key:   nil,
 					Value: payload,
-				})
+				}
+				if ps.parent.conf.Version.IsAtLeast(V0_10_0_0) {
+					compMsg.Version = 1
+					compMsg.Timestamp = set.setToSend.Messages[0].Msg.Timestamp
+				}
+				req.AddMessage(topic, partition, compMsg)
 			}
 		}
 	}

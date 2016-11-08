@@ -1,6 +1,7 @@
 package icmp
 
 import (
+	"expvar"
 	"net"
 	"time"
 
@@ -49,6 +50,12 @@ const (
 	orphanedResponseMsg = "Response was received without an associated request."
 )
 
+var (
+	unmatchedRequests  = expvar.NewInt("icmp.unmatched_requests")
+	unmatchedResponses = expvar.NewInt("icmp.unmatched_responses")
+	duplicateRequests  = expvar.NewInt("icmp.duplicate_requests")
+)
+
 func New(testMode bool, results publish.Transactions, cfg *common.Config) (*Icmp, error) {
 	p := &Icmp{}
 	config := defaultConfig
@@ -68,7 +75,7 @@ func (icmp *Icmp) init(results publish.Transactions, config *icmpConfig) error {
 	icmp.setFromConfig(config)
 
 	var err error
-	icmp.localIps, err = common.LocalIpAddrs()
+	icmp.localIps, err = common.LocalIPAddrs()
 	if err != nil {
 		logp.Err("icmp", "Error getting local IP addresses: %s", err)
 		icmp.localIps = []net.IP{}
@@ -108,9 +115,9 @@ func (icmp *Icmp) ProcessICMPv4(
 
 	tuple := &icmpTuple{
 		IcmpVersion: 4,
-		SrcIp:       pkt.Tuple.Src_ip,
-		DstIp:       pkt.Tuple.Dst_ip,
-		Id:          id,
+		SrcIP:       pkt.Tuple.SrcIP,
+		DstIP:       pkt.Tuple.DstIP,
+		ID:          id,
 		Seq:         seq,
 	}
 	msg := &icmpMessage{
@@ -143,9 +150,9 @@ func (icmp *Icmp) ProcessICMPv6(
 	id, seq := extractTrackingData(6, typ, &icmp6.BaseLayer)
 	tuple := &icmpTuple{
 		IcmpVersion: 6,
-		SrcIp:       pkt.Tuple.Src_ip,
-		DstIp:       pkt.Tuple.Dst_ip,
-		Id:          id,
+		SrcIP:       pkt.Tuple.SrcIP,
+		DstIP:       pkt.Tuple.DstIP,
+		ID:          id,
 		Seq:         seq,
 	}
 	msg := &icmpMessage{
@@ -175,6 +182,7 @@ func (icmp *Icmp) processRequest(tuple *icmpTuple, msg *icmpMessage) {
 	if trans != nil {
 		trans.Notes = append(trans.Notes, duplicateRequestMsg)
 		logp.Debug("icmp", duplicateRequestMsg+" %s", tuple)
+		duplicateRequests.Add(1)
 		icmp.publishTransaction(trans)
 	}
 
@@ -197,6 +205,7 @@ func (icmp *Icmp) processResponse(tuple *icmpTuple, msg *icmpMessage) {
 		trans = &icmpTransaction{Ts: msg.Ts, Tuple: revTuple}
 		trans.Notes = append(trans.Notes, orphanedResponseMsg)
 		logp.Debug("icmp", orphanedResponseMsg+" %s", tuple)
+		unmatchedResponses.Add(1)
 	}
 
 	trans.Response = msg
@@ -204,22 +213,22 @@ func (icmp *Icmp) processResponse(tuple *icmpTuple, msg *icmpMessage) {
 }
 
 func (icmp *Icmp) direction(t *icmpTransaction) uint8 {
-	if !icmp.isLocalIp(t.Tuple.SrcIp) {
+	if !icmp.isLocalIP(t.Tuple.SrcIP) {
 		return directionFromOutside
 	}
-	if !icmp.isLocalIp(t.Tuple.DstIp) {
+	if !icmp.isLocalIP(t.Tuple.DstIP) {
 		return directionFromInside
 	}
 	return directionLocalOnly
 }
 
-func (icmp *Icmp) isLocalIp(ip net.IP) bool {
+func (icmp *Icmp) isLocalIP(ip net.IP) bool {
 	if ip.IsLoopback() {
 		return true
 	}
 
-	for _, localIp := range icmp.localIps {
-		if ip.Equal(localIp) {
+	for _, localIP := range icmp.localIps {
+		if ip.Equal(localIP) {
 			return true
 		}
 	}
@@ -246,6 +255,7 @@ func (icmp *Icmp) deleteTransaction(k hashableIcmpTuple) *icmpTransaction {
 func (icmp *Icmp) expireTransaction(tuple hashableIcmpTuple, trans *icmpTransaction) {
 	trans.Notes = append(trans.Notes, orphanedRequestMsg)
 	logp.Debug("icmp", orphanedRequestMsg+" %s", &trans.Tuple)
+	unmatchedRequests.Add(1)
 	icmp.publishTransaction(trans)
 }
 
@@ -259,13 +269,13 @@ func (icmp *Icmp) publishTransaction(trans *icmpTransaction) {
 	event := common.MapStr{}
 
 	// common fields - group "env"
-	event["client_ip"] = trans.Tuple.SrcIp
-	event["ip"] = trans.Tuple.DstIp
+	event["client_ip"] = trans.Tuple.SrcIP
+	event["ip"] = trans.Tuple.DstIP
 
 	// common fields - group "event"
 	event["@timestamp"] = common.Time(trans.Ts) // timestamp of the first packet
 	event["type"] = "icmp"                      // protocol name
-	event["path"] = trans.Tuple.DstIp           // what is requested (dst ip)
+	event["path"] = trans.Tuple.DstIP           // what is requested (dst ip)
 	if trans.HasError() {
 		event["status"] = common.ERROR_STATUS
 	} else {

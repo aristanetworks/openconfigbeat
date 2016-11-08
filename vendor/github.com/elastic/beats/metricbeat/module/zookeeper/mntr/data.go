@@ -4,19 +4,48 @@ import (
 	"bufio"
 	"io"
 	"regexp"
-	"strconv"
 
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
+	s "github.com/elastic/beats/metricbeat/schema"
+	c "github.com/elastic/beats/metricbeat/schema/mapstrstr"
 )
 
 var (
 	// Matches first the variable name, second the param itself
 	paramMatcher = regexp.MustCompile("([^\\s]+)\\s+(.*$)")
+	schema       = s.Schema{
+		"version": c.Str("zk_version"),
+		"latency": s.Object{
+			"avg": c.Int("zk_avg_latency"),
+			"min": c.Int("zk_min_latency"),
+			"max": c.Int("zk_max_latency"),
+		},
+		"packets": s.Object{
+			"received": c.Int("zk_packets_received"),
+			"sent":     c.Int("zk_packets_sent"),
+		},
+		"num_alive_connections": c.Int("zk_num_alive_connections"),
+		"outstanding_requests":  c.Int("zk_outstanding_requests"),
+		"server_state":          c.Str("zk_server_state"),
+		"znode_count":           c.Int("zk_znode_count"),
+		"watch_count":           c.Int("zk_watch_count"),
+		"ephemerals_count":      c.Int("zk_ephemerals_count"),
+		"approximate_data_size": c.Int("zk_approximate_data_size"),
+	}
+	schemaLeader = s.Schema{
+		"followers":        c.Int("zk_followers"),
+		"synced_followers": c.Int("zk_synced_followers"),
+		"pending_syncs":    c.Int("zk_pending_syncs"),
+	}
+	schemaUnix = s.Schema{
+		"open_file_descriptor_count": c.Int("zk_open_file_descriptor_count"),
+		"max_file_descriptor_count":  c.Int("zk_max_file_descriptor_count"),
+	}
 )
 
 func eventMapping(response io.Reader) common.MapStr {
-	fullEvent := common.MapStr{}
+	fullEvent := map[string]interface{}{}
 	scanner := bufio.NewScanner(response)
 
 	// Iterate through all events to gather data
@@ -28,43 +57,17 @@ func eventMapping(response io.Reader) common.MapStr {
 		}
 	}
 
-	// Manually convert and select fields which are used
-	event := common.MapStr{
-		"zk_version":                    fullEvent["zk_version"],
-		"zk_avg_latency":                toInt(fullEvent["zk_avg_latency"]),
-		"zk_min_latency":                toInt(fullEvent["zk_min_latency"]),
-		"zk_max_latency":                toInt(fullEvent["zk_max_latency"]),
-		"zk_packets_received":           toInt(fullEvent["zk_packets_received"]),
-		"zk_packets_sent":               toInt(fullEvent["zk_packets_sent"]),
-		"zk_num_alive_connections":      toInt(fullEvent["zk_num_alive_connections"]),
-		"zk_outstanding_requests":       toInt(fullEvent["zk_outstanding_requests"]),
-		"zk_server_state":               fullEvent["zk_server_state"],
-		"zk_znode_count":                toInt(fullEvent["zk_znode_count"]),
-		"zk_watch_count":                toInt(fullEvent["zk_watch_count"]),
-		"zk_ephemerals_count":           toInt(fullEvent["zk_ephemerals_count"]),
-		"zk_approximate_data_size":      toInt(fullEvent["zk_approximate_data_size"]),
-		"zk_open_file_descriptor_count": toInt(fullEvent["zk_open_file_descriptor_count"]),
-		"zk_max_file_descriptor_count":  toInt(fullEvent["zk_max_file_descriptor_count"]),
-		"zk_followers":                  toInt(fullEvent["zk_followers"]),
-		"zk_synced_followers":           toInt(fullEvent["zk_synced_followers"]),
-		"zk_pending_syncs":              toInt(fullEvent["zk_pending_syncs"]),
+	event := schema.Apply(fullEvent)
+
+	// only exposed by the Leader
+	if _, ok := fullEvent["zk_followers"]; ok {
+		schemaLeader.ApplyTo(event, fullEvent)
+	}
+
+	// only available on Unix platforms
+	if _, ok := fullEvent["open_file_descriptor_count"]; ok {
+		schemaUnix.ApplyTo(event, fullEvent)
 	}
 
 	return event
-}
-
-// toInt converts value to int. In case of error, returns 0
-func toInt(param interface{}) int {
-	if param == nil {
-		return 0
-	}
-
-	value, err := strconv.Atoi(param.(string))
-
-	if err != nil {
-		logp.Err("Error converting param to int: %s", param)
-		value = 0
-	}
-
-	return value
 }

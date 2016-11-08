@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/elastic/beats/libbeat/common"
 	mbtest "github.com/elastic/beats/metricbeat/mb/testing"
 	"github.com/elastic/beats/metricbeat/module/zookeeper"
 )
@@ -21,18 +22,27 @@ func TestFetch(t *testing.T) {
 	t.Logf("%s/%s event: %+v", f.Module().Name(), f.Name(), event)
 
 	// Check values
-	version := event["zk_version"].(string)
-	avgLatency := event["zk_avg_latency"].(int)
-	maxLatency := event["zk_max_latency"].(int)
-	numAliveConnections := event["zk_num_alive_connections"].(int)
+	version := event["version"].(string)
+	avgLatency := event["latency"].(common.MapStr)["avg"].(int64)
+	maxLatency := event["latency"].(common.MapStr)["max"].(int64)
+	numAliveConnections := event["num_alive_connections"].(int64)
 
 	assert.Equal(t, version, "3.4.8--1, built on 02/06/2016 03:18 GMT")
 	assert.True(t, avgLatency >= 0)
 	assert.True(t, maxLatency >= 0)
 	assert.True(t, numAliveConnections > 0)
 
-	// Check fields
-	assert.Equal(t, 18, len(event))
+	// Check number of fields. At least 10, depending on environment
+	assert.True(t, len(event) >= 10)
+}
+
+func TestData(t *testing.T) {
+	f := mbtest.NewEventFetcher(t, getConfig())
+
+	err := mbtest.WriteEvent(f, t)
+	if err != nil {
+		t.Fatal("write", err)
+	}
 }
 
 func getConfig() map[string]interface{} {

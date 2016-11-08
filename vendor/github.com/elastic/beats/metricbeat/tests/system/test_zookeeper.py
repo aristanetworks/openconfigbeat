@@ -1,20 +1,18 @@
 import os
 import metricbeat
+import unittest
 from nose.plugins.attrib import attr
 
-ZK_FIELDS = metricbeat.COMMON_FIELDS + ["zookeeper-mntr"]
+ZK_FIELDS = metricbeat.COMMON_FIELDS + ["zookeeper"]
 
-MNTR_FIELDS = ["zk_version", "zk_avg_latency", "zk_max_latency",
-               "zk_min_latency", "zk_packets_received", "zk_packets_sent",
-               "zk_outstanding_requests", "zk_server_state", "zk_znode_count",
-               "zk_watch_count", "zk_ephemerals_count",
-               "zk_approximate_data_size", "zk_followers",
-               "zk_synced_followers", "zk_pending_syncs",
-               "zk_open_file_descriptor_count", "zk_max_file_descriptor_count",
-               "zk_num_alive_connections"]
-
+MNTR_FIELDS = ["version", "latency.avg", "latency.max",
+               "latency.min", "packets.received", "packets.sent",
+               "outstanding_requests", "server_state", "znode_count",
+               "watch_count", "ephemerals_count",
+               "approximate_data_size", "num_alive_connections"]
 
 class ZooKeeperMntrTest(metricbeat.BaseTest):
+    @unittest.skipUnless(metricbeat.INTEGRATION_TESTS, "integration test")
     @attr('integration')
     def test_output(self):
         """
@@ -23,8 +21,7 @@ class ZooKeeperMntrTest(metricbeat.BaseTest):
         self.render_config_template(modules=[{
             "name": "zookeeper",
             "metricsets": ["mntr"],
-            "hosts": [os.getenv('ZOOKEEPER_HOST') + ':' + os.getenv(
-                'ZOOKEEPER_PORT')],
+            "hosts": self.get_hosts(),
             "period": "5s"
         }])
         proc = self.start_beat()
@@ -39,8 +36,22 @@ class ZooKeeperMntrTest(metricbeat.BaseTest):
         self.assertEqual(len(output), 1)
         evt = output[0]
 
-        self.assertItemsEqual(ZK_FIELDS, evt.keys())
-        zk_mntr = evt["zookeeper-mntr"]
-        self.assertItemsEqual(MNTR_FIELDS, zk_mntr.keys())
+        self.assertItemsEqual(self.de_dot(ZK_FIELDS), evt.keys())
+        zk_mntr = evt["zookeeper"]["mntr"]
+
+        zk_mntr.pop("pending_syncs", None)
+        zk_mntr.pop("open_file_descriptor_count", None)
+        zk_mntr.pop("synced_followers", None)
+        zk_mntr.pop("max_file_descriptor_count", None)
+        zk_mntr.pop("followers", None)
+
+        self.assertItemsEqual(self.de_dot(MNTR_FIELDS), zk_mntr.keys())
 
         self.assert_fields_are_documented(evt)
+
+
+    def get_hosts(self):
+        return [os.getenv('ZOOKEEPER_HOST', 'localhost') + ':' +
+                os.getenv('ZOOKEEPER_PORT', '2181')]
+
+

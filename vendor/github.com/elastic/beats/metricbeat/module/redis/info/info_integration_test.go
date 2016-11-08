@@ -15,7 +15,6 @@ import (
 
 const (
 	password = "foobared"
-	version  = "3.0.7"
 )
 
 var redisHost = redis.GetRedisEnvHost() + ":" + redis.GetRedisEnvPort()
@@ -30,34 +29,29 @@ func TestFetch(t *testing.T) {
 	t.Logf("%s/%s event: %+v", f.Module().Name(), f.Name(), event)
 
 	// Check fields
-	assert.Equal(t, 9, len(event))
+	assert.Equal(t, 8, len(event))
 	server := event["server"].(common.MapStr)
-	assert.Equal(t, version, server["redis_version"])
-	assert.Equal(t, "standalone", server["redis_mode"])
+	assert.Equal(t, "standalone", server["mode"])
 }
 
-func TestKeyspace(t *testing.T) {
-	// Write to DB to enable Keyspace stats
-	err := writeToRedis(redisHost)
-	if err != nil {
-		t.Fatal("write to host", err)
-	}
-
-	// Fetch metrics
+func TestData(t *testing.T) {
 	f := mbtest.NewEventFetcher(t, getConfig(""))
-	event, err := f.Fetch()
-	if err != nil {
-		t.Fatal("fetch", err)
-	}
 
-	keyspace := event["keyspace"].(map[string]common.MapStr)
-	keyCount := keyspace["db0"]["keys"].(int)
-	assert.True(t, (keyCount > 0))
+	err := mbtest.WriteEvent(f, t)
+	if err != nil {
+		t.Fatal("write", err)
+	}
 }
 
 func TestPasswords(t *testing.T) {
 	// Add password and ensure it gets reset
-	defer resetPassword(redisHost, password, "")
+	defer func() {
+		err := resetPassword(redisHost, password)
+		if err != nil {
+			t.Fatal("resetting password", err)
+		}
+	}()
+
 	err := addPassword(redisHost, password)
 	if err != nil {
 		t.Fatal("adding password", err)
@@ -96,7 +90,7 @@ func addPassword(host, pass string) error {
 }
 
 // resetPassword changes the password to the redis DB.
-func resetPassword(host, currentPass, newPass string) error {
+func resetPassword(host, currentPass string) error {
 	c, err := rd.Dial("tcp", host)
 	if err != nil {
 		return err
@@ -108,7 +102,7 @@ func resetPassword(host, currentPass, newPass string) error {
 		return err
 	}
 
-	_, err = c.Do("CONFIG", "SET", "requirepass", newPass)
+	_, err = c.Do("CONFIG", "SET", "requirepass", "")
 	return err
 }
 
