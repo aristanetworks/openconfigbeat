@@ -5,7 +5,7 @@ all: openconfigbeat/deb openconfigbeat/rpm openconfigbeat/darwin openconfigbeat/
 	build/upload/build_id.txt
 
 ES_BEATS=../../vendor/github.com/elastic/beats
-include $(ES_BEATS)/dev-tools/packer/scripts/Makefile
+include $(ES_BEATS)/dev-tools/packer/Makefile
 
 
 .PHONY: openconfigbeat
