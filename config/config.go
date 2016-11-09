@@ -9,6 +9,7 @@ package config
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -17,8 +18,9 @@ type Config struct {
 }
 
 type OpenconfigbeatConfig struct {
-	Addresses []string `config:"addresses"`
-	Paths     []string `config:"paths"`
+	DefaultPort int      `config:"default_port"`
+	Addresses   []string `config:"addresses"`
+	Paths       []string `config:"paths"`
 }
 
 var DefaultConfig = Config{}
@@ -29,6 +31,11 @@ func (c *OpenconfigbeatConfig) Validate() error {
 	}
 	if len(c.Addresses) == 1 && strings.ContainsRune(c.Addresses[0], ',') {
 		c.Addresses = strings.Split(c.Addresses[0], ",")
+	}
+	for i, address := range c.Addresses {
+		if !strings.ContainsRune(address, ':') {
+			c.Addresses[i] = address + ":" + strconv.Itoa(c.DefaultPort)
+		}
 	}
 	return nil
 }
