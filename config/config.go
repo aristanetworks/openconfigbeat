@@ -9,6 +9,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 )
 
 type Config struct {
@@ -25,6 +26,9 @@ var DefaultConfig = Config{}
 func (c *OpenconfigbeatConfig) Validate() error {
 	if len(c.Addresses) == 0 {
 		return fmt.Errorf("Please specify at least a device to connect to in 'addresses'")
+	}
+	if len(c.Addresses) == 1 && strings.ContainsRune(c.Addresses[0], ',') {
+		c.Addresses = strings.Split(c.Addresses[0], ",")
 	}
 	return nil
 }
