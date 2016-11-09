@@ -8,31 +8,23 @@
 package config
 
 import (
-	"errors"
-	"net"
+	"fmt"
 )
 
 type Config struct {
-	Addresses *[]string `config:"addresses"`
-	Paths     *[]string `config:"paths"`
+	Openconfigbeat OpenconfigbeatConfig
+}
+
+type OpenconfigbeatConfig struct {
+	Addresses []string `config:"addresses"`
+	Paths     []string `config:"paths"`
 }
 
 var DefaultConfig = Config{}
 
-func (c *Config) Validate() error {
-	if c.Addresses == nil || len(*c.Addresses) == 0 {
-		return errors.New("Please specify at least a device to connect to in 'addresses'")
-	}
-	seen := make(map[string]bool, len(*c.Addresses))
-	for _, hostPort := range *c.Addresses {
-		host, _, err := net.SplitHostPort(hostPort)
-		if err != nil {
-			return err
-		}
-		if _, found := seen[host]; found {
-			return errors.New("Duplicate host(s) found in 'addresses'")
-		}
-		seen[host] = true
+func (c *OpenconfigbeatConfig) Validate() error {
+	if len(c.Addresses) == 0 {
+		return fmt.Errorf("Please specify at least a device to connect to in 'addresses'")
 	}
 	return nil
 }

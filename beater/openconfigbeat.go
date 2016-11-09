@@ -26,7 +26,6 @@ import (
 type Openconfigbeat struct {
 	beatConfig       *config.Config
 	done             chan struct{}
-	addresses        []string
 	paths            []*pb.Path
 	subscribeClients map[string]pb.OpenConfig_SubscribeClient
 	events           chan common.MapStr
@@ -38,19 +37,18 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 	conf := config.DefaultConfig
 	err := b.RawConfig.Unpack(&conf)
 	if err != nil {
-		return nil, fmt.Errorf("Error reading config file: %v", err)
+		return nil, err
 	}
-	addresses := *conf.Addresses
 	var paths []*pb.Path
-	if conf.Paths == nil {
+	if len(conf.Openconfigbeat.Paths) == 0 {
 		paths = []*pb.Path{&pb.Path{Element: []string{"/"}}}
 	} else {
-		for _, path := range *conf.Paths {
+		for _, path := range conf.Openconfigbeat.Paths {
 			paths = append(paths, &pb.Path{Element: strings.Split(path, "/")})
 		}
 	}
 	return &Openconfigbeat{
-		addresses:        addresses,
+		beatConfig:       &conf,
 		paths:            paths,
 		done:             make(chan struct{}),
 		subscribeClients: make(map[string]pb.OpenConfig_SubscribeClient),
@@ -114,7 +112,7 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 	bt.client = b.Publisher.Connect()
 
 	// Connect the OpenConfig client
-	for _, addr := range bt.addresses {
+	for _, addr := range bt.beatConfig.Openconfigbeat.Addresses {
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
 			logp.Err("Failed to connect to %s: %s", addr, err.Error())
