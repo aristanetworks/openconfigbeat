@@ -166,6 +166,7 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 			if !bt.client.PublishEvent(event) {
 				return fmt.Errorf("Failed to publish event %q", event)
 			}
+			logp.Info("Published: %s", event)
 		}
 	}
 }

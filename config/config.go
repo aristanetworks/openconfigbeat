@@ -25,17 +25,25 @@ type OpenconfigbeatConfig struct {
 
 var DefaultConfig = Config{}
 
+// Split a single option specified via -E into multiple options, if the value
+// contains comma-separated values
+func split(opts []string) []string {
+	if len(opts) == 1 && strings.ContainsRune(opts[0], ',') {
+		return strings.Split(opts[0], ",")
+	}
+	return opts
+}
+
 func (c *OpenconfigbeatConfig) Validate() error {
 	if len(c.Addresses) == 0 {
 		return fmt.Errorf("Please specify at least a device to connect to in 'addresses'")
 	}
-	if len(c.Addresses) == 1 && strings.ContainsRune(c.Addresses[0], ',') {
-		c.Addresses = strings.Split(c.Addresses[0], ",")
-	}
+	c.Addresses = split(c.Addresses)
 	for i, address := range c.Addresses {
 		if !strings.ContainsRune(address, ':') {
 			c.Addresses[i] = address + ":" + strconv.Itoa(c.DefaultPort)
 		}
 	}
+	c.Paths = split(c.Paths)
 	return nil
 }
