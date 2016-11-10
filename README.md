@@ -78,15 +78,15 @@ To run Openconfigbeat with debugging output enabled, run:
 ./openconfigbeat -e -d openconfigbeat.go
 ```
 
-To override any part of the configuration you can use `-E`, for example:
+To override an individual setting in the config file you can use `-E`, for example:
 ```
-./openconfigbeat -E openconfigbeat.addresses=device1,device2 -E output.elasticsearch.hosts=elasticsearch
+./openconfigbeat -E openconfigbeat.addresses=device1,device2
 ```
 
 To run as a container:
 
 ```
-docker run aristanetworks/openconfigbeat -E openconfigbeat.addresses=device -E output.elasticsearch.hosts=elasticsearch
+docker run aristanetworks/openconfigbeat -E openconfigbeat.addresses=device
 ```
 
 ### Package
