@@ -137,8 +137,8 @@ make clean
 To clone Openconfigbeat from the git repository, run the following commands:
 
 ```
-mkdir -p ${GOPATH}/github.com/aristanetworks
-cd ${GOPATH}/github.com/aristanetworks
+mkdir -p ${GOPATH}/src/github.com/aristanetworks
+cd ${GOPATH}/src/github.com/aristanetworks
 git clone https://github.com/aristanetworks/openconfigbeat
 ```
 
