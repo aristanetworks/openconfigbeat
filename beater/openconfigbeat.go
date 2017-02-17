@@ -162,7 +162,7 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 		case <-bt.done:
 			return nil
 		case event := <-bt.events:
-			event["type"] = b.Name
+			event["type"] = b.Info.Name
 			if !bt.client.PublishEvent(event) {
 				return fmt.Errorf("Failed to publish event %q", event)
 			}

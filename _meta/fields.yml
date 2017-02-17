@@ -1,0 +1,12 @@
+- key: openconfigbeat
+  title: OpenConfig streaming response
+  description: >
+    Contains common fields available in all event types.
+  fields:
+    - type: group
+      name: beat
+      fields:
+    - name: type
+      required: true
+      description: >
+        The type of beat.

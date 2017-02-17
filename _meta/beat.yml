@@ -1,0 +1,11 @@
+################### Openconfigbeat Configuration Example #########################
+
+############################# Openconfigbeat ######################################
+
+openconfigbeat:
+  # Defines the addresses of the OpenConfig devices to connect to
+  addresses: ["localhost"]
+  # Defines the OpenConfig paths to subscribe to
+  paths: ["/"]
+  # Defines the default port to connect to if none is configured
+  default_port: 6042

@@ -1,3 +1,0 @@
-=== HAProxy info MetricSet
-
-This is the info metricset of the haproxy module.

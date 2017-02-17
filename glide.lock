@@ -1,8 +1,8 @@
 hash: c0110a7fc50c748fa5f09c9ee938f0ced9fc735cf2af54fc3395e91f77daef48
-updated: 2016-11-08T10:33:51.224321176-08:00
+updated: 2017-02-17T12:05:24.110575348-08:00
 imports:
 - name: github.com/aristanetworks/goarista
-  version: 9969c228d7aa1e7a8ce620f601977cad12a9077e
+  version: ea17b1a17847fb6e4c0a91de0b674704693469b0
   subpackages:
   - elasticsearch
   - openconfig
@@ -19,17 +19,27 @@ imports:
 - name: github.com/eapache/queue
   version: ded5959c0d4e360646dc9e9908cff48666781367
 - name: github.com/elastic/beats
-  version: 0ee4eef51d3ad6e308176ac4b8ba6d1af0c798ad
+  version: 2eb2571df5e0227a1c06269825c2d817cc8b6d05
   subpackages:
   - libbeat/beat
   - libbeat/cfgfile
   - libbeat/common
   - libbeat/common/dtfmt
+  - libbeat/common/file
   - libbeat/common/fmtstr
+  - libbeat/common/jsontransform
+  - libbeat/common/match
   - libbeat/common/op
   - libbeat/common/streambuf
+  - libbeat/dashboards/dashboards
   - libbeat/logp
+  - libbeat/monitoring
+  - libbeat/monitoring/adapter
+  - libbeat/monitoring/report
+  - libbeat/monitoring/report/elasticsearch
   - libbeat/outputs
+  - libbeat/outputs/codecs/format
+  - libbeat/outputs/codecs/json
   - libbeat/outputs/console
   - libbeat/outputs/elasticsearch
   - libbeat/outputs/fileout
@@ -43,6 +53,7 @@ imports:
   - libbeat/outputs/redis
   - libbeat/outputs/transport
   - libbeat/paths
+  - libbeat/plugin
   - libbeat/processors
   - libbeat/processors/actions
   - libbeat/processors/add_cloud_metadata
@@ -60,10 +71,11 @@ imports:
   - server/internal
   - server/v2
 - name: github.com/elastic/go-ucfg
-  version: 6baf3ba6c380865e8176e9418551444b25cbf8f2
+  version: ec8488a52542c0c51e42e8ea204dcaff400bc644
   subpackages:
   - cfgutil
   - flag
+  - internal/parse
   - json
   - yaml
 - name: github.com/garyburd/redigo
@@ -72,7 +84,7 @@ imports:
   - internal
   - redis
 - name: github.com/golang/protobuf
-  version: 2bc9827a78f95c6665b5fe0abd1fd66b496ae2d8
+  version: 8ee79997227bf9b34611aee7946ae64735e6fd93
   subpackages:
   - proto
   - ptypes/any
@@ -89,12 +101,20 @@ imports:
   version: 09cded8978dc9e80714c4d85b0322337b0a1e5e0
 - name: github.com/klauspost/crc32
   version: 19b0b332c9e4516a6370a0456e6182c3b5036720
+- name: github.com/mitchellh/hashstructure
+  version: b098c52ef6beab8cd82bc4a32422cf54b890e8fa
 - name: github.com/nranchev/go-libGeoIP
   version: c78e8bd2dd3599feb21fd30886043979e82fe948
 - name: github.com/openconfig/reference
-  version: 50737efd95d44356d45f6c7d0ffff0d2c9f66a4e
+  version: 7e6ed6c6a4cb0cded8df028f91d5f222d873d10f
   subpackages:
   - rpc/openconfig
+- name: github.com/pierrec/lz4
+  version: 5c9560bfa9ace2bf86080bf40d46b34ae44604df
+- name: github.com/pierrec/xxHash
+  version: 5a004441f897722c627870a981d02b29924215fa
+  subpackages:
+  - xxHash32
 - name: github.com/pkg/errors
   version: 01fa4104b9c248c8945d14d9f128454d5b28d595
 - name: github.com/rcrowley/go-metrics
@@ -104,7 +124,7 @@ imports:
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/Shopify/sarama
-  version: 79f4f3268b75e30e3110a62ea8497fa7b2d20923
+  version: f0996189c86dc27338468f2a9b10077c6d572b34
   repo: https://github.com/urso/sarama
 - name: golang.org/x/net
   version: d58ca6618b994150e624f6888d871f4709db51a0
@@ -122,7 +142,7 @@ imports:
   - windows/svc
   - windows/svc/debug
 - name: google.golang.org/grpc
-  version: eddbd11c7ecd001d06777cb87b5ea7af54227907
+  version: d0c32ee6a441117d49856d6120ca9552af413ee0
   subpackages:
   - codes
   - credentials
@@ -131,6 +151,7 @@ imports:
   - metadata
   - naming
   - peer
+  - stats
   - tap
   - transport
 - name: gopkg.in/yaml.v2

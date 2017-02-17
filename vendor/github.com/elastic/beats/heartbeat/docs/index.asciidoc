@@ -1,5 +1,0 @@
-= Heartbeat Docs
-
-Welcome to the Heartbeat documentation.
-
-

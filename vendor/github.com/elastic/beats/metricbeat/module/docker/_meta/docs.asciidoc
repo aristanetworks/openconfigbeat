@@ -1,6 +1,0 @@
-== docker Module
-
-experimental[]
-
-This is the docker Module.
-

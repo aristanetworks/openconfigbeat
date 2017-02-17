@@ -1,4 +1,4 @@
-BEATNAME=openconfigbeat
+BEAT_NAME=openconfigbeat
 BEAT_DIR=github.com/aristanetworks
 SYSTEM_TESTS=false
 TEST_ENVIRONMENT=false
