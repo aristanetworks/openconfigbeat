@@ -41,7 +41,7 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 	}
 	var paths []*pb.Path
 	if len(conf.Openconfigbeat.Paths) == 0 {
-		paths = []*pb.Path{&pb.Path{Element: []string{"/"}}}
+		paths = []*pb.Path{{Element: []string{"/"}}}
 	} else {
 		for _, path := range conf.Openconfigbeat.Paths {
 			paths = append(paths, &pb.Path{Element: strings.Split(path, "/")})
@@ -140,7 +140,7 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 			Request: &pb.SubscribeRequest_Subscribe{
 				Subscribe: &pb.SubscriptionList{
 					Subscription: []*pb.Subscription{
-						&pb.Subscription{
+						{
 							Path: path,
 						},
 					},
