@@ -39,6 +39,7 @@ find "$targetdir" \( \
     -o -name '*.pdf' \
     -o -name '*.md' \
     -o -name '*.p[ly]' \
+    -o -name '*_test.go' \
     -o -name Makefile \
   \) \
   -a ! \( \
