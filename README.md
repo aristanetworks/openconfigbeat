@@ -58,7 +58,7 @@ Document example:
 * [Glide](https://github.com/Masterminds/glide) >= 0.10.0
 
 ### Configuration
-Edit `etc/beat.yml` with the appropriate configuration.
+Edit `_meta/beat.yml` with the appropriate configuration.
 
 ### Build
 
@@ -93,8 +93,8 @@ docker run aristanetworks/openconfigbeat -E openconfigbeat.addresses=device
 ### Update
 
 Each beat has a template for the mapping in elasticsearch and a documentation for the fields
-which is automatically generated based on `etc/fields.yml`.
-To generate etc/openconfigbeat.template.json, etc/openconfigbeat.asciidoc and openconfigbeat.yml
+which is automatically generated based on `_meta/fields.yml`.
+To generate `openconfigbeat.template.json` and `openconfigbeat.yml`:
 
 ```
 make update
