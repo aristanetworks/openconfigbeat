@@ -12,6 +12,7 @@ env:
   matrix:
   - TARGETS="check"
   - TARGETS="testsuite"
+  - TARGETS="package"
   global:
   - GOX_FLAGS="-arch amd64"
 addons:
