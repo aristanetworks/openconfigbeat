@@ -1,5 +1,6 @@
 BEAT_NAME=openconfigbeat
 BEAT_DIR=github.com/aristanetworks
+BEAT_PATH=$(BEAT_DIR)/$(BEAT_NAME)
 SYSTEM_TESTS=false
 TEST_ENVIRONMENT=false
 ES_BEATS=./vendor/github.com/elastic/beats
