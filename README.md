@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/aristanetworks/openconfigbeat.svg?token=4pFw4pt39z2iokPtps7U&branch=master)](https://travis-ci.com/aristanetworks/openconfigbeat)
+[![Build Status](https://travis-ci.org/aristanetworks/openconfigbeat.svg?branch=master)](https://travis-ci.org/aristanetworks/openconfigbeat)
 
 # Openconfigbeat
 
