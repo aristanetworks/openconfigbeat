@@ -36,7 +36,9 @@ find "$targetdir" \( \
   -a \( \
     -name .travis.yml \
     -o -name 'README*' \
+    -o -name '*.jpeg' \
     -o -name '*.pdf' \
+    -o -name '*.png' \
     -o -name '*.md' \
     -o -name '*.p[ly]' \
     -o -name '*_test.go' \

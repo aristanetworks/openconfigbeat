@@ -1,6 +1,7 @@
 import metricbeat
 
 import unittest
+import os
 from nose.plugins.attrib import attr
 
 
@@ -11,20 +12,20 @@ class Test(metricbeat.BaseTest):
         """
         test container fields
         """
-        self.render_config_template(modules=[{
-            "name": "docker",
-            "metricsets": ["container"],
-            "hosts": ["unix:///var/run/docker.sock"],
-            "period": "1s",
-        }])
+        self.render_config_template(
+            modules=[{
+                "name": "docker",
+                "metricsets": ["container"],
+                "hosts": ["unix:///var/run/docker.sock"],
+                "period": "10s",
+            }],
+        )
 
         proc = self.start_beat()
         self.wait_until(lambda: self.output_lines() > 0, max_timeout=20)
         proc.check_kill_and_wait()
-
-        # Ensure no errors or warnings exist in the log.
-        log = self.get_log()
-        self.assertNotRegexpMatches(log.replace("WARN BETA", ""), "ERR|WARN")
+        self.assert_no_logged_warnings(["WARN Container stopped when recovering stats",
+                                        "ERR An error occurred while getting docker stats"])
 
         output = self.read_output_json()
         evt = output[0]
@@ -41,16 +42,14 @@ class Test(metricbeat.BaseTest):
             "name": "docker",
             "metricsets": ["cpu"],
             "hosts": ["unix:///var/run/docker.sock"],
-            "period": "1s"
+            "period": "10s"
         }])
 
         proc = self.start_beat()
         self.wait_until(lambda: self.output_lines() > 0, max_timeout=30)
         proc.check_kill_and_wait()
-
-        # Ensure no errors or warnings exist in the log.
-        log = self.get_log()
-        self.assertNotRegexpMatches(log.replace("WARN BETA", ""), "ERR|WARN")
+        self.assert_no_logged_warnings(["WARN Container stopped when recovering stats",
+                                        "ERR An error occurred while getting docker stats"])
 
         output = self.read_output_json()
         evt = output[0]
@@ -71,16 +70,14 @@ class Test(metricbeat.BaseTest):
             "name": "docker",
             "metricsets": ["diskio"],
             "hosts": ["unix:///var/run/docker.sock"],
-            "period": "1s"
+            "period": "10s"
         }])
 
         proc = self.start_beat()
         self.wait_until(lambda: self.output_lines() > 0, max_timeout=30)
         proc.check_kill_and_wait()
-
-        # Ensure no errors or warnings exist in the log.
-        log = self.get_log()
-        self.assertNotRegexpMatches(log.replace("WARN BETA", ""), "ERR|WARN")
+        self.assert_no_logged_warnings(["WARN Container stopped when recovering stats",
+                                        "ERR An error occurred while getting docker stats"])
 
         output = self.read_output_json()
         evt = output[0]
@@ -98,16 +95,14 @@ class Test(metricbeat.BaseTest):
             "name": "docker",
             "metricsets": ["info"],
             "hosts": ["unix:///var/run/docker.sock"],
-            "period": "1s"
+            "period": "10s"
         }])
 
         proc = self.start_beat()
         self.wait_until(lambda: self.output_lines() > 0, max_timeout=30)
         proc.check_kill_and_wait()
-
-        # Ensure no errors or warnings exist in the log.
-        log = self.get_log()
-        self.assertNotRegexpMatches(log.replace("WARN BETA", ""), "ERR|WARN")
+        self.assert_no_logged_warnings(["WARN Container stopped when recovering stats",
+                                        "ERR An error occurred while getting docker stats"])
 
         output = self.read_output_json()
         evt = output[0]
@@ -123,16 +118,14 @@ class Test(metricbeat.BaseTest):
             "name": "docker",
             "metricsets": ["memory"],
             "hosts": ["unix:///var/run/docker.sock"],
-            "period": "1s"
+            "period": "10s"
         }])
 
         proc = self.start_beat()
         self.wait_until(lambda: self.output_lines() > 0, max_timeout=30)
         proc.check_kill_and_wait()
-
-        # Ensure no errors or warnings exist in the log.
-        log = self.get_log()
-        self.assertNotRegexpMatches(log.replace("WARN BETA", ""), "ERR|WARN")
+        self.assert_no_logged_warnings(["WARN Container stopped when recovering stats",
+                                        "ERR An error occurred while getting docker stats"])
 
         output = self.read_output_json()
         evt = output[0]
@@ -149,16 +142,14 @@ class Test(metricbeat.BaseTest):
             "name": "docker",
             "metricsets": ["network"],
             "hosts": ["unix:///var/run/docker.sock"],
-            "period": "1s"
+            "period": "10s"
         }])
 
         proc = self.start_beat()
         self.wait_until(lambda: self.output_lines() > 0, max_timeout=30)
         proc.check_kill_and_wait()
-
-        # Ensure no errors or warnings exist in the log.
-        log = self.get_log()
-        self.assertNotRegexpMatches(log.replace("WARN BETA", ""), "ERR|WARN")
+        self.assert_no_logged_warnings(["WARN Container stopped when recovering stats",
+                                        "ERR An error occurred while getting docker stats"])
 
         output = self.read_output_json()
         evt = output[0]
@@ -175,16 +166,14 @@ class Test(metricbeat.BaseTest):
             "name": "docker",
             "metricsets": ["healthcheck"],
             "hosts": ["unix:///var/run/docker.sock"],
-            "period": "1s",
+            "period": "10s",
         }])
 
         proc = self.start_beat()
         self.wait_until(lambda: self.output_lines() > 0, max_timeout=20)
         proc.check_kill_and_wait()
-
-        # Ensure no errors or warnings exist in the log.
-        log = self.get_log()
-        self.assertNotRegexpMatches(log.replace("WARN BETA", ""), "ERR|WARN")
+        self.assert_no_logged_warnings(["WARN Container stopped when recovering stats",
+                                        "ERR An error occurred while getting docker stats"])
 
         output = self.read_output_json()
         evt = output[0]
@@ -201,16 +190,14 @@ class Test(metricbeat.BaseTest):
             "name": "docker",
             "metricsets": ["image"],
             "hosts": ["unix:///var/run/docker.sock"],
-            "period": "1s",
+            "period": "10s",
         }])
 
         proc = self.start_beat()
         self.wait_until(lambda: self.output_lines() > 0, max_timeout=20)
         proc.check_kill_and_wait()
-
-        # Ensure no errors or warnings exist in the log.
-        log = self.get_log()
-        self.assertNotRegexpMatches(log.replace("WARN BETA", ""), "ERR|WARN")
+        self.assert_no_logged_warnings(["WARN Container stopped when recovering stats",
+                                        "ERR An error occurred while getting docker stats"])
 
         output = self.read_output_json()
         evt = output[0]

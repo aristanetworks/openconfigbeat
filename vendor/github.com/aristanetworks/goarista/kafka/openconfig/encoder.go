@@ -37,10 +37,27 @@ func (e UnhandledSubscribeResponseError) Error() string {
 	return fmt.Sprintf("Unexpected type %T in subscribe response: %#v", e.response, e.response)
 }
 
-// ElasticsearchMessageEncoder defines the encoding from SubscribeResponse to
-// sarama.ProducerMessage for Elasticsearch
-func ElasticsearchMessageEncoder(topic string, key sarama.Encoder, dataset string,
-	message proto.Message) (*sarama.ProducerMessage, error) {
+type elasticsearchMessageEncoder struct {
+	*kafka.BaseEncoder
+	topic   string
+	dataset string
+	key     sarama.Encoder
+}
+
+// NewEncoder creates and returns a new elasticsearch MessageEncoder
+func NewEncoder(topic string, key sarama.Encoder, dataset string) kafka.MessageEncoder {
+	baseEncoder := kafka.NewBaseEncoder("elasticsearch")
+	return &elasticsearchMessageEncoder{
+		BaseEncoder: baseEncoder,
+		topic:       topic,
+		dataset:     dataset,
+		key:         key,
+	}
+}
+
+func (e *elasticsearchMessageEncoder) Encode(message proto.Message) ([]*sarama.ProducerMessage,
+	error) {
+
 	response, ok := message.(*pb.SubscribeResponse)
 	if !ok {
 		return nil, UnhandledMessageError{message: message}
@@ -49,22 +66,25 @@ func ElasticsearchMessageEncoder(topic string, key sarama.Encoder, dataset strin
 	if update == nil {
 		return nil, UnhandledSubscribeResponseError{response: response}
 	}
-	updateMap, err := openconfig.NotificationToMap(dataset, update,
+	updateMap, err := openconfig.NotificationToMap(e.dataset, update,
 		elasticsearch.EscapeFieldName)
 	if err != nil {
 		return nil, err
 	}
-	// Convert time to ms to make Elasticsearch happy
+	// Convert time to ms to make elasticsearch happy
 	updateMap["timestamp"] = updateMap["timestamp"].(int64) / 1000000
 	updateJSON, err := json.Marshal(updateMap)
 	if err != nil {
 		return nil, err
 	}
 	glog.V(9).Infof("kafka: %s", updateJSON)
-	return &sarama.ProducerMessage{
-		Topic:    topic,
-		Key:      key,
-		Value:    sarama.ByteEncoder(updateJSON),
-		Metadata: kafka.Metadata{StartTime: time.Unix(0, update.Timestamp), NumMessages: 1},
+	return []*sarama.ProducerMessage{
+		&sarama.ProducerMessage{
+			Topic:    e.topic,
+			Key:      e.key,
+			Value:    sarama.ByteEncoder(updateJSON),
+			Metadata: kafka.Metadata{StartTime: time.Unix(0, update.Timestamp), NumMessages: 1},
+		},
 	}, nil
+
 }

@@ -9,13 +9,13 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"io/ioutil"
-	"log"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 
-	gnmipb "github.com/openconfig/reference/rpc/gnmi"
+	"github.com/aristanetworks/glog"
+	pb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 // Config is the gnmi.Client config
@@ -30,18 +30,18 @@ type Config struct {
 }
 
 // Dial connects to a gnmi service and returns a client
-func Dial(cfg Config) gnmipb.GNMIClient {
+func Dial(cfg *Config) pb.GNMIClient {
 	var opts []grpc.DialOption
 	if cfg.TLS || cfg.CAFile != "" || cfg.CertFile != "" {
 		tlsConfig := &tls.Config{}
 		if cfg.CAFile != "" {
 			b, err := ioutil.ReadFile(cfg.CAFile)
 			if err != nil {
-				log.Fatal(err)
+				glog.Fatal(err)
 			}
 			cp := x509.NewCertPool()
 			if !cp.AppendCertsFromPEM(b) {
-				log.Fatalf("credentials: failed to append certificates")
+				glog.Fatalf("credentials: failed to append certificates")
 			}
 			tlsConfig.RootCAs = cp
 		} else {
@@ -49,11 +49,11 @@ func Dial(cfg Config) gnmipb.GNMIClient {
 		}
 		if cfg.CertFile != "" {
 			if cfg.KeyFile == "" {
-				log.Fatalf("Please provide both -certfile and -keyfile")
+				glog.Fatalf("Please provide both -certfile and -keyfile")
 			}
 			cert, err := tls.LoadX509KeyPair(cfg.CertFile, cfg.KeyFile)
 			if err != nil {
-				log.Fatal(err)
+				glog.Fatal(err)
 			}
 			tlsConfig.Certificates = []tls.Certificate{cert}
 		}
@@ -64,17 +64,17 @@ func Dial(cfg Config) gnmipb.GNMIClient {
 
 	conn, err := grpc.Dial(cfg.Addr, opts...)
 	if err != nil {
-		log.Fatalf("Failed to dial: %s", err)
+		glog.Fatalf("Failed to dial: %s", err)
 	}
 
-	return gnmipb.NewGNMIClient(conn)
+	return pb.NewGNMIClient(conn)
 }
 
 // NewContext returns a new context with username and password
 // metadata if they are set in cfg.
-func NewContext(ctx context.Context, cfg Config) context.Context {
+func NewContext(ctx context.Context, cfg *Config) context.Context {
 	if cfg.Username != "" {
-		ctx = metadata.NewContext(ctx, metadata.Pairs(
+		ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs(
 			"username", cfg.Username,
 			"password", cfg.Password))
 	}
@@ -82,24 +82,36 @@ func NewContext(ctx context.Context, cfg Config) context.Context {
 }
 
 // NewGetRequest returns a GetRequest for the given paths
-func NewGetRequest(paths [][]string) *gnmipb.GetRequest {
-	req := &gnmipb.GetRequest{
-		Path: make([]*gnmipb.Path, len(paths)),
+func NewGetRequest(paths [][]string) (*pb.GetRequest, error) {
+	req := &pb.GetRequest{
+		Path: make([]*pb.Path, len(paths)),
 	}
 	for i, p := range paths {
-		req.Path[i] = &gnmipb.Path{Element: p}
+		elm, err := ParseGNMIElements(p)
+		if err != nil {
+			return nil, err
+		}
+		req.Path[i] = &pb.Path{
+			Element: p, // Backwards compatibility with pre-v0.4 gnmi
+			Elem:    elm}
 	}
-	return req
+	return req, nil
 }
 
 // NewSubscribeRequest returns a SubscribeRequest for the given paths
-func NewSubscribeRequest(paths [][]string) *gnmipb.SubscribeRequest {
-	subList := &gnmipb.SubscriptionList{
-		Subscription: make([]*gnmipb.Subscription, len(paths)),
+func NewSubscribeRequest(paths [][]string) (*pb.SubscribeRequest, error) {
+	subList := &pb.SubscriptionList{
+		Subscription: make([]*pb.Subscription, len(paths)),
 	}
 	for i, p := range paths {
-		subList.Subscription[i] = &gnmipb.Subscription{Path: &gnmipb.Path{Element: p}}
+		elm, err := ParseGNMIElements(p)
+		if err != nil {
+			return nil, err
+		}
+		subList.Subscription[i] = &pb.Subscription{Path: &pb.Path{
+			Element: p, // Backwards compatibility with pre-v0.4 gnmi
+			Elem:    elm}}
 	}
-	return &gnmipb.SubscribeRequest{
-		Request: &gnmipb.SubscribeRequest_Subscribe{Subscribe: subList}}
+	return &pb.SubscribeRequest{
+		Request: &pb.SubscribeRequest_Subscribe{Subscribe: subList}}, nil
 }

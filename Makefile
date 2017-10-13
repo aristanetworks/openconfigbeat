@@ -5,6 +5,7 @@ SYSTEM_TESTS=false
 TEST_ENVIRONMENT=false
 ES_BEATS=./vendor/github.com/elastic/beats
 GOPACKAGES=$(shell glide novendor)
+GOIMPORTS_LOCAL_PREFIX=github.com/aristanetworks
 PREFIX?=.
 
 # Path to the libbeat Makefile
@@ -14,7 +15,7 @@ PREFIX?=.
 
 .PHONY: update-deps
 update-deps:
-	glide update --no-recursive
+	glide update && ./clean_vendor.sh
 
 # This is called by the beats packer before building starts
 .PHONY: before-build

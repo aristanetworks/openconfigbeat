@@ -1,7 +1,30 @@
+/*
+ *
+ * Copyright 2017 gRPC authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+// Copyright (C) 2015  Arista Networks, Inc.
+// Use of this source code is governed by the Apache License 2.0
+// that can be found in the COPYING file.
+
 package stats
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -31,8 +54,8 @@ type HistogramBucket struct {
 	Count int64
 }
 
-// Print writes textual output of the histogram values.
-func (v HistogramValue) Print(w io.Writer) {
+// PrintChart writes textual output of the histogram values.
+func (v HistogramValue) PrintChart(w io.Writer) {
 	avg := float64(v.Sum) / float64(v.Count)
 	fmt.Fprintf(w, "Count: %d  Min: %d  Max: %d  Avg: %.2f\n", v.Count, v.Min, v.Max, avg)
 	fmt.Fprintf(w, "%s\n", strings.Repeat("-", 60))
@@ -67,10 +90,45 @@ func (v HistogramValue) Print(w io.Writer) {
 	}
 }
 
+// MarshalJSON marshal the HistogramValue into JSON.
+func (v HistogramValue) MarshalJSON() ([]byte, error) {
+	var b bytes.Buffer
+	var min int64
+	var max int64
+	var avg float64
+	var percentMulti float64
+	if v.Count != 0 {
+		min = v.Min
+		max = v.Max
+		avg = float64(v.Sum) / float64(v.Count)
+		percentMulti = 100 / float64(v.Count)
+	}
+	fmt.Fprintf(&b,
+		`{"stats":{"count":%d,"min":%d,"max":%d,"avg":%.2f}, "buckets": {`,
+		v.Count, min, max, avg)
+
+	for i, bucket := range v.Buckets {
+		fmt.Fprintf(&b, `"[%d,`, bucket.LowBound)
+		if i+1 < len(v.Buckets) {
+			fmt.Fprintf(&b, `%d)":{`, v.Buckets[i+1].LowBound)
+		} else {
+			fmt.Fprintf(&b, `inf)":{`)
+		}
+
+		fmt.Fprintf(&b, `"count":%d,"percentage":%.1f}`,
+			bucket.Count, float64(bucket.Count)*percentMulti)
+		if i != len(v.Buckets)-1 {
+			fmt.Fprintf(&b, ",")
+		}
+	}
+	fmt.Fprint(&b, `}}`)
+	return b.Bytes(), nil
+}
+
 // String returns the textual output of the histogram values as string.
 func (v HistogramValue) String() string {
 	var b bytes.Buffer
-	v.Print(&b)
+	v.PrintChart(&b)
 	return b.String()
 }
 
@@ -137,6 +195,20 @@ func NewHistogram(opts HistogramOptions) *Histogram {
 // Opts returns a copy of the options used to create the Histogram.
 func (h *Histogram) Opts() HistogramOptions {
 	return h.opts
+}
+
+// Print returns the histogram as a chart.
+func (h *Histogram) Print() string {
+	return h.Value().String()
+}
+
+// String returns a JSON representation of the histogram for expvars.
+func (h *Histogram) String() string {
+	j, err := json.Marshal(h.Value())
+	if err != nil {
+		return ""
+	}
+	return string(j)
 }
 
 // Add adds a value to the histogram.

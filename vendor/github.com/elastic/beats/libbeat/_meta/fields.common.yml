@@ -15,6 +15,10 @@
       description: >
         The hostname as returned by the operating system on which the Beat is
         running.
+    - name: beat.timezone
+      description: >
+        The timezone as returned by the operating system on which the Beat is
+        running.
     - name: beat.version
       description: >
         The version of the beat that generated this event.
@@ -34,7 +38,24 @@
 
     - name: fields
       type: object
-      object-type: keyword
+      object_type: keyword
       description: >
         Contains user configurable fields.
 
+    - name: error
+      type: group
+      description: >
+        Error fields containing additional info in case of errors.
+      fields:
+        - name: message
+          type: text
+          description: >
+            Error message.
+        - name: code
+          type: long
+          description: >
+            Error code.
+        - name: type
+          type: keyword
+          description: >
+            Error type.

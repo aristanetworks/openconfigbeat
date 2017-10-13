@@ -211,15 +211,15 @@ func parseResponseStatus(s []byte) (uint16, []byte, error) {
 	if p == -1 {
 		return 0, nil, errors.New("Not able to identify status code")
 	}
-
-	code, _ := parseInt(s[0:p])
-
-	p = bytes.LastIndexByte(s, ' ')
-	if p == -1 {
-		return uint16(code), nil, errors.New("Not able to identify status code")
+	statusCode, err := parseInt(s[0:p])
+	if err != nil {
+		return 0, nil, fmt.Errorf("Unable to parse status code from [%s]", s)
 	}
 	phrase := s[p+1:]
-	return uint16(code), phrase, nil
+	if len(phrase) == 0 {
+		return 0, nil, fmt.Errorf("Unable to parse status phrase from [%s]", s)
+	}
+	return uint16(statusCode), phrase, nil
 }
 
 func parseVersion(s []byte) (uint8, uint8, error) {
@@ -466,7 +466,6 @@ func (*parser) parseBodyChunkedStart(s *stream, m *message) (cont, ok, complete 
 }
 
 func (*parser) parseBodyChunked(s *stream, m *message) (cont, ok, complete bool) {
-
 	if len(s.data[s.parseOffset:]) >= m.chunkedLength-s.bodyReceived+2 /*\r\n*/ {
 		// Received more data than expected
 		m.chunkedBody = append(m.chunkedBody, s.data[s.parseOffset:s.parseOffset+m.chunkedLength-s.bodyReceived]...)

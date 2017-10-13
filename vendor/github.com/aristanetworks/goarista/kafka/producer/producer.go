@@ -5,32 +5,19 @@
 package producer
 
 import (
-	"expvar"
-	"fmt"
 	"os"
 	"sync"
-	"sync/atomic"
-	"time"
 
 	"github.com/Shopify/sarama"
 	"github.com/aristanetworks/glog"
 	"github.com/aristanetworks/goarista/kafka"
 	"github.com/aristanetworks/goarista/kafka/openconfig"
-	"github.com/aristanetworks/goarista/monitor"
 	"github.com/golang/protobuf/proto"
 )
 
-// counter counts the number Sysdb clients we have, and is used to guarantee that we
-// always have a unique name exported to expvar
-var counter uint32
-
-// MessageEncoder defines the encoding from topic, key, proto.Message to sarama.ProducerMessage
-type MessageEncoder func(string, sarama.Encoder, string, proto.Message) (*sarama.ProducerMessage,
-	error)
-
 // Producer forwards messages recvd on a channel to kafka.
 type Producer interface {
-	Run()
+	Start()
 	Write(proto.Message)
 	Stop()
 }
@@ -38,26 +25,14 @@ type Producer interface {
 type producer struct {
 	notifsChan    chan proto.Message
 	kafkaProducer sarama.AsyncProducer
-	topic         string
-	key           sarama.Encoder
-	dataset       string
-	encoder       MessageEncoder
+	encoder       kafka.MessageEncoder
 	done          chan struct{}
 	wg            sync.WaitGroup
-
-	// Used for monitoring
-	histogram    *monitor.Histogram
-	numSuccesses monitor.Uint
-	numFailures  monitor.Uint
 }
 
 // New creates new Kafka producer
-func New(topic string, notifsChan chan proto.Message,
-	key sarama.Encoder, dataset string, encoder MessageEncoder,
+func New(encoder kafka.MessageEncoder,
 	kafkaAddresses []string, kafkaConfig *sarama.Config) (Producer, error) {
-	if notifsChan == nil {
-		notifsChan = make(chan proto.Message)
-	}
 
 	if kafkaConfig == nil {
 		kafkaConfig := sarama.NewConfig()
@@ -68,6 +43,7 @@ func New(topic string, notifsChan chan proto.Message,
 		kafkaConfig.ClientID = hostname
 		kafkaConfig.Producer.Compression = sarama.CompressionSnappy
 		kafkaConfig.Producer.Return.Successes = true
+		kafkaConfig.Producer.RequiredAcks = sarama.WaitForAll
 	}
 
 	kafkaProducer, err := sarama.NewAsyncProducer(kafkaAddresses, kafkaConfig)
@@ -75,40 +51,26 @@ func New(topic string, notifsChan chan proto.Message,
 		return nil, err
 	}
 
-	// Setup monitoring structures
-	histName := "kafkaProducerHistogram"
-	statsName := "messagesStats"
-	if id := atomic.AddUint32(&counter, 1); id > 1 {
-		histName = fmt.Sprintf("%s-%d", histName, id)
-		statsName = fmt.Sprintf("%s-%d", statsName, id)
-	}
-	hist := monitor.NewHistogram(histName, 32, 0.3, 1000, 0)
-	statsMap := expvar.NewMap(statsName)
-
 	p := &producer{
-		notifsChan:    notifsChan,
+		notifsChan:    make(chan proto.Message),
 		kafkaProducer: kafkaProducer,
-		topic:         topic,
-		key:           key,
-		dataset:       dataset,
 		encoder:       encoder,
 		done:          make(chan struct{}),
 		wg:            sync.WaitGroup{},
-		histogram:     hist,
 	}
-
-	statsMap.Set("successes", &p.numSuccesses)
-	statsMap.Set("failures", &p.numFailures)
-
 	return p, nil
 }
 
-func (p *producer) Run() {
-	p.wg.Add(2)
+// Start makes producer to start processing writes.
+// This method is non-blocking.
+func (p *producer) Start() {
+	p.wg.Add(3)
 	go p.handleSuccesses()
 	go p.handleErrors()
+	go p.run()
+}
 
-	p.wg.Add(1)
+func (p *producer) run() {
 	defer p.wg.Done()
 	for {
 		select {
@@ -116,7 +78,7 @@ func (p *producer) Run() {
 			if !open {
 				return
 			}
-			err := p.produceNotification(batch)
+			err := p.produceNotifications(batch)
 			if err != nil {
 				if _, ok := err.(openconfig.UnhandledSubscribeResponseError); !ok {
 					panic(err)
@@ -128,39 +90,51 @@ func (p *producer) Run() {
 	}
 }
 
-func (p *producer) Write(m proto.Message) {
-	p.notifsChan <- m
+func (p *producer) Write(msg proto.Message) {
+	select {
+	case p.notifsChan <- msg:
+	case <-p.done:
+		// TODO: This should probably return an EOF error, but that
+		// would change the API
+	}
 }
 
 func (p *producer) Stop() {
 	close(p.done)
-	p.kafkaProducer.Close()
 	p.wg.Wait()
+	p.kafkaProducer.Close()
 }
 
-func (p *producer) produceNotification(protoMessage proto.Message) error {
-	message, err := p.encoder(p.topic, p.key, p.dataset, protoMessage)
+func (p *producer) produceNotifications(protoMessage proto.Message) error {
+	messages, err := p.encoder.Encode(protoMessage)
 	if err != nil {
 		return err
 	}
-	select {
-	case p.kafkaProducer.Input() <- message:
-		glog.V(9).Infof("Message produced to Kafka: %s", message)
-		return nil
-	case <-p.done:
-		return nil
+	for _, m := range messages {
+		select {
+		case <-p.done:
+			return nil
+		case p.kafkaProducer.Input() <- m:
+			glog.V(9).Infof("Message produced to Kafka: %s", m)
+		}
 	}
+	return nil
 }
 
 // handleSuccesses reads from the producer's successes channel and collects some
 // information for monitoring
 func (p *producer) handleSuccesses() {
 	defer p.wg.Done()
-	for msg := range p.kafkaProducer.Successes() {
-		metadata := msg.Metadata.(kafka.Metadata)
-		// TODO: Add a monotonic clock source when one becomes available
-		p.histogram.UpdateLatencyValues(metadata.StartTime, time.Now())
-		p.numSuccesses.Add(uint64(metadata.NumMessages))
+	for {
+		select {
+		case msg, open := <-p.kafkaProducer.Successes():
+			if !open {
+				return
+			}
+			p.encoder.HandleSuccess(msg)
+		case <-p.done:
+			return
+		}
 	}
 }
 
@@ -168,11 +142,15 @@ func (p *producer) handleSuccesses() {
 // for monitoring
 func (p *producer) handleErrors() {
 	defer p.wg.Done()
-	for msg := range p.kafkaProducer.Errors() {
-		metadata := msg.Msg.Metadata.(kafka.Metadata)
-		// TODO: Add a monotonic clock source when one becomes available
-		p.histogram.UpdateLatencyValues(metadata.StartTime, time.Now())
-		glog.Errorf("Kafka Producer error: %s", msg.Error())
-		p.numFailures.Add(uint64(metadata.NumMessages))
+	for {
+		select {
+		case msg, open := <-p.kafkaProducer.Errors():
+			if !open {
+				return
+			}
+			p.encoder.HandleError(msg)
+		case <-p.done:
+			return
+		}
 	}
 }

@@ -14,10 +14,6 @@ import (
 )
 
 type Config struct {
-	Openconfigbeat OpenconfigbeatConfig
-}
-
-type OpenconfigbeatConfig struct {
 	DefaultPort int      `config:"default_port"`
 	Addresses   []string `config:"addresses"`
 	Paths       []string `config:"paths"`
@@ -34,7 +30,7 @@ func split(opts []string) []string {
 	return opts
 }
 
-func (c *OpenconfigbeatConfig) Validate() error {
+func (c *Config) Validate() error {
 	if len(c.Addresses) == 0 {
 		return fmt.Errorf("Please specify at least a device to connect to in 'addresses'")
 	}

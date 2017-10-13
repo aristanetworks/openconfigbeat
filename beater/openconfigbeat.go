@@ -5,58 +5,55 @@
 package beater
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strings"
 	"time"
 
-	"github.com/aristanetworks/goarista/elasticsearch"
-	"github.com/aristanetworks/goarista/openconfig"
+	pb "github.com/openconfig/reference/rpc/openconfig"
+	"google.golang.org/grpc"
+
 	"github.com/elastic/beats/libbeat/beat"
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
-	"github.com/elastic/beats/libbeat/publisher"
-	pb "github.com/openconfig/reference/rpc/openconfig"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 
+	"github.com/aristanetworks/goarista/elasticsearch"
+	"github.com/aristanetworks/goarista/openconfig"
 	"github.com/aristanetworks/openconfigbeat/config"
 )
 
 type Openconfigbeat struct {
-	beatConfig       *config.Config
 	done             chan struct{}
+	config           config.Config
+	client           beat.Client
 	paths            []*pb.Path
 	subscribeClients map[string]pb.OpenConfig_SubscribeClient
-	events           chan common.MapStr
-	client           publisher.Client
+	events           chan beat.Event
 }
 
 // Creates beater
 func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
-	conf := config.DefaultConfig
-	err := b.RawConfig.Unpack(&conf)
-	if err != nil {
-		return nil, err
+	config := config.DefaultConfig
+	if err := cfg.Unpack(&config); err != nil {
+		return nil, fmt.Errorf("Error reading config file: %v", err)
 	}
 	var paths []*pb.Path
-	if len(conf.Openconfigbeat.Paths) == 0 {
+	if len(config.Paths) == 0 {
 		paths = []*pb.Path{{Element: []string{"/"}}}
 	} else {
-		for _, path := range conf.Openconfigbeat.Paths {
+		for _, path := range config.Paths {
 			paths = append(paths, &pb.Path{Element: strings.Split(path, "/")})
 		}
 	}
 	return &Openconfigbeat{
-		beatConfig:       &conf,
-		paths:            paths,
 		done:             make(chan struct{}),
+		config:           config,
+		paths:            paths,
 		subscribeClients: make(map[string]pb.OpenConfig_SubscribeClient),
-		events:           make(chan common.MapStr),
+		events:           make(chan beat.Event),
 	}, nil
 }
-
-/// *** Beater interface methods ***///
 
 // recv listens for SubscribeResponse notifications on a stream, and publishes the
 // JSON representation of the notifications it receives on a channel
@@ -87,11 +84,13 @@ func (bt *Openconfigbeat) recv(host string) {
 			logp.Err("Malformed timestamp: %s", timestamp)
 			continue
 		}
-		notifMap["@timestamp"] = common.Time(time.Unix(timestampNs/1e9,
-			timestampNs%1e9))
-		delete(notifMap, "timestamp")
+		event := beat.Event{
+			Timestamp: time.Unix(timestampNs/1e9, timestampNs%1e9),
+			Fields:    notifMap,
+		}
+		delete(event.Fields, "timestamp")
 		select {
-		case bt.events <- notifMap:
+		case bt.events <- event:
 		case <-bt.done:
 			return
 		}
@@ -109,10 +108,13 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 	logp.Info("openconfigbeat is running! Hit CTRL-C to stop it.")
 
 	// Connect to elastisearch
-	bt.client = b.Publisher.Connect()
+	var err error
+	if bt.client, err = b.Publisher.Connect(); err != nil {
+		return err
+	}
 
 	// Connect the OpenConfig client
-	for _, addr := range bt.beatConfig.Openconfigbeat.Addresses {
+	for _, addr := range bt.config.Addresses {
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
 			logp.Err("Failed to connect to %s: %s", addr, err.Error())
@@ -162,15 +164,14 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 		case <-bt.done:
 			return nil
 		case event := <-bt.events:
-			event["type"] = b.Info.Name
-			if !bt.client.PublishEvent(event) {
-				return fmt.Errorf("Failed to publish event %q", event)
-			}
+			event.Fields["type"] = b.Info.Name
+			bt.client.Publish(event)
 			logp.Info("Published: %s", event)
 		}
 	}
 }
 
 func (bt *Openconfigbeat) Stop() {
+	bt.client.Close()
 	close(bt.done)
 }

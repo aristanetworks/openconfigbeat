@@ -7,11 +7,21 @@ package dscp
 
 import (
 	"net"
+	"reflect"
 )
 
 // ListenTCPWithTOS is similar to net.ListenTCP but with the socket configured
 // to the use the given ToS (Type of Service), to specify DSCP / ECN / class
 // of service flags to use for incoming connections.
 func ListenTCPWithTOS(address *net.TCPAddr, tos byte) (*net.TCPListener, error) {
-	return listenTCPWithTOS(address, tos)
+	lsnr, err := net.ListenTCP("tcp", address)
+	if err != nil {
+		return nil, err
+	}
+	value := reflect.ValueOf(lsnr)
+	if err = setTOS(address.IP, value, tos); err != nil {
+		lsnr.Close()
+		return nil, err
+	}
+	return lsnr, err
 }
