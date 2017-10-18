@@ -1,5 +1,6 @@
 /.idea
 /build
+/data
 /logs
 
 .DS_Store
