@@ -41,6 +41,7 @@ find "$targetdir" \( \
     -o -name '*.png' \
     -o -name '*.md' \
     -o -name '*.p[ly]' \
+    -o -name '*.tar' \
     -o -name '*_test.go' \
     -o -name Makefile \
   \) \
