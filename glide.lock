@@ -1,8 +1,8 @@
 hash: c0110a7fc50c748fa5f09c9ee938f0ced9fc735cf2af54fc3395e91f77daef48
-updated: 2017-10-17T18:23:38.071817-07:00
+updated: 2017-10-23T11:31:41.86644-07:00
 imports:
 - name: github.com/aristanetworks/goarista
-  version: 555b95a71e7357b9b1f067a3ef62f01560c02f5b
+  version: aa6ce169f053a4951175ecedfdecdc1920abd9d3
   subpackages:
   - elasticsearch
   - openconfig
@@ -11,12 +11,12 @@ imports:
   subpackages:
   - spew
 - name: github.com/docker/distribution
-  version: 7484e51bf6af0d3b1a849644cdaced3cfcf13617
+  version: 3800056b8832cf6075e78b282ac010131d8687bc
   subpackages:
   - digestset
   - reference
 - name: github.com/docker/docker
-  version: 7dbbd4e2ba2ef0a19e9e8d42439780300218ad87
+  version: 8ca8cc219db45bc1228a70c99d24d8b01759e019
   subpackages:
   - api
   - api/types
@@ -52,7 +52,7 @@ imports:
 - name: github.com/eapache/queue
   version: 44cc805cf13205b55f69e14bcb69867d1ae92f98
 - name: github.com/elastic/beats
-  version: 0bd6c4a5e52a48463d52771d57012954708efc1b
+  version: f40b49a7bb7de97f0ce5b45f12eca5edaff8f181
   subpackages:
   - libbeat/api
   - libbeat/beat
@@ -164,11 +164,11 @@ imports:
 - name: github.com/ghodss/yaml
   version: 0ca9ea5df5451ffdf184b4428c902747c2c11cd7
 - name: github.com/gogo/protobuf
-  version: 0c5dcd73e6fd1ac6c452a68ec7f8d463d111be66
+  version: 117892bf1866fbaa2318c03e50e40564c8845457
   subpackages:
   - proto
 - name: github.com/golang/protobuf
-  version: 130e6b02ab059e7b717a096f397c5b60111cae74
+  version: 1643683e1b54a9e88ad26d98f81400c8c9d9f4f9
   subpackages:
   - proto
   - ptypes
@@ -216,17 +216,17 @@ imports:
   subpackages:
   - xxHash32
 - name: github.com/pkg/errors
-  version: 2b3a18b5f0fb6b4f9190549597d3f962c02bc5eb
+  version: f15c970de5b76fac0b59abb32d62c17cc7bed265
 - name: github.com/rcrowley/go-metrics
   version: 1f30fe9094a513ce4c700b9a54458bbb0c96996c
 - name: github.com/satori/go.uuid
   version: 5bf94b69c6b68ee1b541973bb8e1144db23a194b
 - name: github.com/Shopify/sarama
-  version: 70f6a705d4a17af059acbc6946fb2bd30762acd7
+  version: 630b33cbf6f5c5af999918be52bac32cf52d0176
 - name: github.com/spf13/cobra
   version: 7b2c5ac9fc04fc5efafb60700713d4fa609b777b
 - name: github.com/spf13/pflag
-  version: 1f33b80956cde38911d1f23d764deb8d77a649ce
+  version: 97afa5e7ca8a08a383cb259e06636b5e2cc7897f
 - name: github.com/urso/go-structform
   version: 8b344343f44bca3db9b0242cb0a3985c0c7ed64a
   subpackages:
@@ -235,7 +235,7 @@ imports:
   - json
   - visitors
 - name: golang.org/x/net
-  version: 1087133bc4af3073e18add999345c6ae75918503
+  version: 5561cd9b4330353950f399814f427425c0a26fd2
   subpackages:
   - context
   - context/ctxhttp
@@ -265,9 +265,10 @@ imports:
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: 16c41925b8363ca5f2a4c829d0c63046789d2322
+  version: a5986a5c88227370a9c0a82e5277167229c034cd
   subpackages:
   - balancer
+  - balancer/roundrobin
   - codes
   - connectivity
   - credentials
@@ -279,6 +280,8 @@ imports:
   - naming
   - peer
   - resolver
+  - resolver/dns
+  - resolver/passthrough
   - stats
   - status
   - tap
