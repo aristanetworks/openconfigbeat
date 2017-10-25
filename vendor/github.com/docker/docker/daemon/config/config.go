@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"reflect"
 	"runtime"
 	"strings"
@@ -203,9 +204,6 @@ func New() *Config {
 
 // ParseClusterAdvertiseSettings parses the specified advertise settings
 func ParseClusterAdvertiseSettings(clusterStore, clusterAdvertise string) (string, error) {
-	if runtime.GOOS == "solaris" && (clusterAdvertise != "" || clusterStore != "") {
-		return "", errors.New("Cluster Advertise Settings not supported on Solaris")
-	}
 	if clusterAdvertise == "" {
 		return "", daemondiscovery.ErrDiscoveryDisabled
 	}
@@ -249,7 +247,10 @@ func Reload(configFile string, flags *pflag.FlagSet, reload func(*Config)) error
 	logrus.Infof("Got signal to reload configuration, reloading from: %s", configFile)
 	newConfig, err := getConflictFreeConfiguration(configFile, flags)
 	if err != nil {
-		return err
+		if flags.Changed("config-file") || !os.IsNotExist(err) {
+			return fmt.Errorf("unable to configure the Docker daemon with file %s: %v", configFile, err)
+		}
+		newConfig = New()
 	}
 
 	if err := Validate(newConfig); err != nil {
