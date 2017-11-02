@@ -3,12 +3,22 @@
 ############################# Openconfigbeat ######################################
 
 openconfigbeat:
-  # Defines the addresses of the OpenConfig devices to connect to
+
+  # The addresses of the OpenConfig devices to connect to.
   addresses: ["localhost"]
-  # Defines the OpenConfig paths to subscribe to
+
+  # The OpenConfig paths to subscribe to.
   paths: ["/"]
-  # Defines the default port to connect to if none is configured
+
+  # The default port to connect to if none is configured.
   default_port: 6042
+
+  # The username on the device.
+  #username: "admin"
+
+  # The password for the user on the device.
+  #password: "password"
+
 
 #================================ General ======================================
 

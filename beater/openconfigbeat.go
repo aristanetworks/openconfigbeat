@@ -13,6 +13,7 @@ import (
 
 	pb "github.com/openconfig/reference/rpc/openconfig"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/elastic/beats/libbeat/beat"
 	"github.com/elastic/beats/libbeat/common"
@@ -125,7 +126,13 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 		client := pb.NewOpenConfigClient(conn)
 
 		// Subscribe
-		s, err := client.Subscribe(context.Background())
+		ctx := context.Background()
+		if bt.config.Username != "" {
+			ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs(
+				"username", bt.config.Username,
+				"password", bt.config.Password))
+		}
+		s, err := client.Subscribe(ctx)
 		if err != nil {
 			logp.Err("Failed to subscribe from %s: %s", addr, err.Error())
 			continue

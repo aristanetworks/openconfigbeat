@@ -17,6 +17,8 @@ type Config struct {
 	DefaultPort int      `config:"default_port"`
 	Addresses   []string `config:"addresses"`
 	Paths       []string `config:"paths"`
+	Username    string   `config:"username"`
+	Password    string   `config:"password"`
 }
 
 var DefaultConfig = Config{}
