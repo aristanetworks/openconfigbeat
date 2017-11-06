@@ -628,7 +628,7 @@ func setMounts(daemon *Daemon, s *specs.Spec, c *container.Container, mounts []c
 	if s.Root.Readonly {
 		for i, m := range s.Mounts {
 			switch m.Destination {
-			case "/proc", "/dev/pts", "/dev/mqueue": // /dev is remounted by runc
+			case "/proc", "/dev/pts", "/dev/mqueue", "/dev":
 				continue
 			}
 			if _, ok := userMounts[m.Destination]; !ok {
@@ -755,7 +755,6 @@ func (daemon *Daemon) createSpec(c *container.Container) (*specs.Spec, error) {
 	if err := setResources(&s, c.HostConfig.Resources); err != nil {
 		return nil, fmt.Errorf("linux runtime spec resources: %v", err)
 	}
-	s.Process.OOMScoreAdj = &c.HostConfig.OomScoreAdj
 	s.Linux.Sysctl = c.HostConfig.Sysctls
 
 	p := s.Linux.CgroupsPath
