@@ -309,6 +309,8 @@ func UnknownServiceHandler(streamHandler StreamHandler) ServerOption {
 // connection establishment (up to and including HTTP/2 handshaking) for all
 // new connections.  If this is not set, the default is 120 seconds.  A zero or
 // negative value will result in an immediate timeout.
+//
+// This API is EXPERIMENTAL.
 func ConnectionTimeout(d time.Duration) ServerOption {
 	return func(o *options) {
 		o.connectionTimeout = d
@@ -1182,23 +1184,9 @@ func (s *Server) GracefulStop() {
 }
 
 func init() {
-	internal.TestingCloseConns = func(arg interface{}) {
-		arg.(*Server).testingCloseConns()
-	}
 	internal.TestingUseHandlerImpl = func(arg interface{}) {
 		arg.(*Server).opts.useHandlerImpl = true
 	}
-}
-
-// testingCloseConns closes all existing transports but keeps s.lis
-// accepting new connections.
-func (s *Server) testingCloseConns() {
-	s.mu.Lock()
-	for c := range s.conns {
-		c.Close()
-		delete(s.conns, c)
-	}
-	s.mu.Unlock()
 }
 
 // SetHeader sets the header metadata.
