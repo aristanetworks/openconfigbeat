@@ -1,4 +1,4 @@
-// Copyright (C) 2015  Arista Networks, Inc.
+// Copyright (c) 2015 Arista Networks, Inc.
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the COPYING file.
 
@@ -13,8 +13,9 @@ import (
 	"net/http"
 	_ "net/http/pprof" // Go documentation recommended usage
 
-	"github.com/aristanetworks/glog"
 	"github.com/aristanetworks/goarista/netns"
+
+	"github.com/aristanetworks/glog"
 )
 
 // Server represents a monitoring server

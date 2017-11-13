@@ -1,4 +1,4 @@
-// Copyright (C) 2017  Arista Networks, Inc.
+// Copyright (c) 2017 Arista Networks, Inc.
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the COPYING file.
 
@@ -11,12 +11,11 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/aristanetworks/glog"
+	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
-
-	"github.com/aristanetworks/glog"
-	pb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 const (
@@ -95,13 +94,11 @@ func NewGetRequest(paths [][]string) (*pb.GetRequest, error) {
 		Path: make([]*pb.Path, len(paths)),
 	}
 	for i, p := range paths {
-		elm, err := ParseGNMIElements(p)
+		gnmiPath, err := ParseGNMIElements(p)
 		if err != nil {
 			return nil, err
 		}
-		req.Path[i] = &pb.Path{
-			Element: p, // Backwards compatibility with pre-v0.4 gnmi
-			Elem:    elm}
+		req.Path[i] = gnmiPath
 	}
 	return req, nil
 }
@@ -112,13 +109,11 @@ func NewSubscribeRequest(paths [][]string) (*pb.SubscribeRequest, error) {
 		Subscription: make([]*pb.Subscription, len(paths)),
 	}
 	for i, p := range paths {
-		elm, err := ParseGNMIElements(p)
+		gnmiPath, err := ParseGNMIElements(p)
 		if err != nil {
 			return nil, err
 		}
-		subList.Subscription[i] = &pb.Subscription{Path: &pb.Path{
-			Element: p, // Backwards compatibility with pre-v0.4 gnmi
-			Elem:    elm}}
+		subList.Subscription[i] = &pb.Subscription{Path: gnmiPath}
 	}
 	return &pb.SubscribeRequest{
 		Request: &pb.SubscribeRequest_Subscribe{Subscribe: subList}}, nil

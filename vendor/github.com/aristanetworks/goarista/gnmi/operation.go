@@ -1,4 +1,4 @@
-// Copyright (C) 2017  Arista Networks, Inc.
+// Copyright (c) 2017 Arista Networks, Inc.
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the COPYING file.
 
@@ -137,12 +137,20 @@ func strLeaflist(v *pb.ScalarArray) string {
 	return buf.String()
 }
 
-func update(p *pb.Path, v []byte) *pb.Update {
-	return &pb.Update{Path: p, Val: jsonval(v)}
-}
+func update(p *pb.Path, val string) *pb.Update {
+	var v *pb.TypedValue
+	switch p.Origin {
+	case "":
+		v = &pb.TypedValue{
+			Value: &pb.TypedValue_JsonIetfVal{JsonIetfVal: extractJSON(val)}}
+	case "cli":
+		v = &pb.TypedValue{
+			Value: &pb.TypedValue_AsciiVal{AsciiVal: val}}
+	default:
+		panic(fmt.Errorf("unexpected origin: %q", p.Origin))
+	}
 
-func jsonval(j []byte) *pb.TypedValue {
-	return &pb.TypedValue{Value: &pb.TypedValue_JsonIetfVal{JsonIetfVal: j}}
+	return &pb.Update{Path: p, Val: v}
 }
 
 // Operation describes an gNMI operation.
@@ -152,29 +160,32 @@ type Operation struct {
 	Val  string
 }
 
-// Set sends a SetRequest to the given client.
-func Set(ctx context.Context, client pb.GNMIClient, setOps []*Operation) error {
+func newSetRequest(setOps []*Operation) (*pb.SetRequest, error) {
 	req := &pb.SetRequest{}
 	for _, op := range setOps {
-		elm, err := ParseGNMIElements(op.Path)
+		p, err := ParseGNMIElements(op.Path)
 		if err != nil {
-			return err
-		}
-		p := &pb.Path{
-			Element: op.Path, // Backwards compatibility with pre-v0.4 gnmi
-			Elem:    elm,
+			return nil, err
 		}
 
 		switch op.Type {
 		case "delete":
 			req.Delete = append(req.Delete, p)
 		case "update":
-			req.Update = append(req.Update, update(p, extractJSON(op.Val)))
+			req.Update = append(req.Update, update(p, op.Val))
 		case "replace":
-			req.Replace = append(req.Replace, update(p, extractJSON(op.Val)))
+			req.Replace = append(req.Replace, update(p, op.Val))
 		}
 	}
+	return req, nil
+}
 
+// Set sends a SetRequest to the given client.
+func Set(ctx context.Context, client pb.GNMIClient, setOps []*Operation) error {
+	req, err := newSetRequest(setOps)
+	if err != nil {
+		return err
+	}
 	resp, err := client.Set(ctx, req)
 	if err != nil {
 		return err
