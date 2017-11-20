@@ -45,6 +45,7 @@ https://github.com/elastic/beats/compare/v6.0.0-beta2...master[Check the HEAD di
 - Fix missing ACK in redis output. {issue}5404[5404]
 - Change add_kubernetes_metadata to attempt detection of namespace. {pull}5482[5482]
 - Avoid double slash when join url and path {pull}5517[5517]
+- Fix console color output for Windows. {issue}5611[5611]
 
 *Auditbeat*
 
@@ -93,6 +94,7 @@ https://github.com/elastic/beats/compare/v6.0.0-beta2...master[Check the HEAD di
 - Refactor add_kubernetes_metadata to support autodiscovery {pull}5434[5434]
 - Improve custom flag handling and CLI flags usage message. {pull}5543[5543]
 - Update to Golang 1.9.2
+- Add number_of_routing_shards config set to 30 {pull}5570[5570]
 
 *Auditbeat*
 
@@ -107,6 +109,8 @@ https://github.com/elastic/beats/compare/v6.0.0-beta2...master[Check the HEAD di
 - Remove error log from runnerfactory as error is returned by API. {pull}5085[5085]
 - Remove error log from runnerfactory as error is returned by API. {pull}5085[5085]
 - Add Kubernetes manifests to deploy Filebeat. {pull}5349[5349]
+- Add experimental Docker `json-file` prospector . {pull}5402[5402]
+- Add experimental Docker autodiscover functionality. {pull}5245[5245]
 
 *Heartbeat*
 
@@ -124,6 +128,8 @@ https://github.com/elastic/beats/compare/v6.0.0-beta2...master[Check the HEAD di
 - Add ip address of docker containers to event. {pull}5379[5379]
 - Add ceph osd tree infomation to metricbeat {pull}5498[5498]
 - Add basic Logstash module. {pull}5540[5540]
+- Add dashboard for Windows service metricset. {pull}5603[5603]
+- Add experimental Docker autodiscover functionality. {pull}5245[5245]
 
 *Packetbeat*
 
