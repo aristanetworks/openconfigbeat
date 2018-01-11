@@ -5,32 +5,32 @@
 package beater
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
-	"strings"
+	"path"
 	"time"
 
-	pb "github.com/openconfig/reference/rpc/openconfig"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
+	pb "github.com/openconfig/gnmi/proto/gnmi"
 
 	"github.com/elastic/beats/libbeat/beat"
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
 
-	"github.com/aristanetworks/goarista/elasticsearch"
-	"github.com/aristanetworks/goarista/openconfig"
+	"github.com/aristanetworks/goarista/gnmi"
 	"github.com/aristanetworks/openconfigbeat/config"
 )
 
 type Openconfigbeat struct {
-	done             chan struct{}
-	config           config.Config
-	client           beat.Client
-	paths            []*pb.Path
-	subscribeClients map[string]pb.OpenConfig_SubscribeClient
-	events           chan beat.Event
+	done      chan struct{}
+	config    config.Config
+	client    beat.Client
+	paths     [][]string
+	responses map[string]chan *pb.SubscribeResponse
+	errors    map[string]chan error
+	events    chan beat.Event
 }
 
 // Creates beater
@@ -39,69 +39,136 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 	if err := cfg.Unpack(&config); err != nil {
 		return nil, fmt.Errorf("Error reading config file: %v", err)
 	}
-	var paths []*pb.Path
-	if len(config.Paths) == 0 {
-		paths = []*pb.Path{{Element: []string{"/"}}}
-	} else {
-		for _, path := range config.Paths {
-			paths = append(paths, &pb.Path{Element: strings.Split(path, "/")})
-		}
+	strPaths := config.Paths
+	if len(strPaths) == 0 {
+		strPaths = []string{"/"}
 	}
 	return &Openconfigbeat{
-		done:             make(chan struct{}),
-		config:           config,
-		paths:            paths,
-		subscribeClients: make(map[string]pb.OpenConfig_SubscribeClient),
-		events:           make(chan beat.Event),
+		done:      make(chan struct{}),
+		config:    config,
+		paths:     gnmi.SplitPaths(strPaths),
+		responses: make(map[string]chan *pb.SubscribeResponse),
+		errors:    make(map[string]chan error),
+		events:    make(chan beat.Event),
 	}, nil
+}
+
+// TODO: move these to goarista.git?
+func convertDelete(dataset string, prefix string, delete *pb.Path) common.MapStr {
+	m := common.MapStr{}
+	m.Put("dataset", dataset)
+	m.Put("path", prefix)
+	// TODO: need to remove path suffixes here?
+	m.Put("delete", gnmi.StrPath(delete))
+	return m
+}
+
+func formatValue(update *pb.Update) (interface{}, error) {
+	var output interface{}
+	if update.Value != nil {
+		if update.Value.Type == pb.Encoding_JSON || update.Value.Type == pb.Encoding_JSON_IETF {
+			decoder := json.NewDecoder(bytes.NewReader(update.Value.Value))
+			decoder.UseNumber()
+			err := decoder.Decode(&output)
+			return output, err
+		}
+		return gnmi.StrUpdateVal(update), nil
+	}
+	switch v := update.Val.GetValue().(type) {
+	case *pb.TypedValue_JsonIetfVal:
+		err := json.Unmarshal(v.JsonIetfVal, output)
+		return output, err
+	case *pb.TypedValue_JsonVal:
+		err := json.Unmarshal(v.JsonVal, output)
+		return output, err
+	}
+	return gnmi.StrVal(update.Val), nil
+}
+
+func convertUpdate(dataset string, prefix string, update *pb.Update) (common.MapStr,
+	error) {
+	m := common.MapStr{}
+	m.Put("dataset", dataset)
+	m.Put("path", path.Join(prefix, gnmi.StrPath(update.Path)))
+	outputValue, err := formatValue(update)
+	if err != nil {
+		return nil, fmt.Errorf("Malformed update value: %s", err)
+	}
+	if _, ok := outputValue.(map[string]interface{}); !ok {
+		k := fmt.Sprintf("%T", outputValue)
+		m["update"] = map[string]interface{}{k: outputValue}
+	}
+	return m, nil
 }
 
 // recv listens for SubscribeResponse notifications on a stream, and publishes the
 // JSON representation of the notifications it receives on a channel
 func (bt *Openconfigbeat) recv(host string) {
+	respChan := bt.responses[host]
+	errChan := bt.errors[host]
 	for {
-		response, err := bt.subscribeClients[host].Recv()
-		if err != nil {
-			logp.Err(err.Error())
-			return
-		}
-		update := response.GetUpdate()
-		if update == nil {
-			continue
-		}
-		notifMap, err := openconfig.NotificationToMap(host, update,
-			elasticsearch.EscapeFieldName)
-		if err != nil {
-			logp.Err(err.Error())
-			continue
-		}
-		timestamp, found := notifMap["timestamp"]
-		if !found {
-			logp.Err("Malformed subscribe response: %s", notifMap)
-			return
-		}
-		timestampNs, ok := timestamp.(int64)
-		if !ok {
-			logp.Err("Malformed timestamp: %s", timestamp)
-			continue
-		}
-		event := beat.Event{
-			Timestamp: time.Unix(timestampNs/1e9, timestampNs%1e9),
-			Fields:    notifMap,
-		}
-		delete(event.Fields, "timestamp")
 		select {
-		case bt.events <- event:
-		case <-bt.done:
-			return
+		case err := <-errChan:
+			logp.Err("error from %s: %s", host, err)
+		case response := <-respChan:
+			update := response.GetUpdate()
+			if update == nil {
+				continue
+			}
+			timestamp := time.Unix(update.Timestamp/1e9, update.Timestamp%1e9)
+			prefix := update.GetPrefix()
+			prefixStr := "/"
+			if prefix != nil {
+				prefixStr += gnmi.StrPath(prefix)
+			}
+			events := []beat.Event{}
+			fields := common.MapStr{}
+			for _, del := range update.GetDelete() {
+				output := convertDelete(host, prefixStr, del)
+				fields.Update(output)
+			}
+			flush := func() {
+				event := beat.Event{
+					Timestamp: timestamp,
+					Fields:    fields,
+				}
+				events = append(events, event)
+			}
+			if len(fields) > 0 {
+				flush()
+			}
+			fields = common.MapStr{}
+			for _, up := range update.GetUpdate() {
+				output, err := convertUpdate(host, prefixStr, up)
+				if err != nil {
+					logp.Err(err.Error())
+					continue
+				}
+				if len(fields) > 0 && fields["path"] != output["path"] {
+					flush()
+					fields = output
+				} else {
+					fields.Update(output)
+				}
+			}
+			if len(fields) > 0 {
+				flush()
+			}
+			for _, event := range events {
+				select {
+				case bt.events <- event:
+				case <-bt.done:
+					return
+				}
+			}
 		}
 	}
 }
 
 // recvAll listens for SubscribeResponse notifications on all streams
 func (bt *Openconfigbeat) recvAll() {
-	for i := range bt.subscribeClients {
-		go bt.recv(i)
+	for addr := range bt.responses {
+		go bt.recv(addr)
 	}
 }
 
@@ -116,53 +183,25 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 
 	// Connect the OpenConfig client
 	for _, addr := range bt.config.Addresses {
-		conn, err := grpc.Dial(addr, grpc.WithInsecure())
-		if err != nil {
-			logp.Err("Failed to connect to %s: %s", addr, err.Error())
-			continue
+		gnmiConfig := &gnmi.Config{
+			Addr:     addr,
+			Username: bt.config.Username,
+			Password: bt.config.Password,
 		}
+		ctx := gnmi.NewContext(context.Background(), gnmiConfig)
+		client := gnmi.Dial(gnmiConfig)
 		logp.Info("Connected to %s", addr)
-		defer conn.Close()
-		client := pb.NewOpenConfigClient(conn)
 
 		// Subscribe
-		ctx := context.Background()
-		if bt.config.Username != "" {
-			ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs(
-				"username", bt.config.Username,
-				"password", bt.config.Password))
-		}
-		s, err := client.Subscribe(ctx)
-		if err != nil {
-			logp.Err("Failed to subscribe from %s: %s", addr, err.Error())
-			continue
-		}
-		defer s.CloseSend()
+		respChan := make(chan *pb.SubscribeResponse)
+		errChan := make(chan error)
+		go gnmi.Subscribe(ctx, client, bt.paths, respChan, errChan)
 		device, _, err := net.SplitHostPort(addr)
 		if err != nil {
 			return err
 		}
-		bt.subscribeClients[device] = s
-	}
-	for _, path := range bt.paths {
-		sub := &pb.SubscribeRequest{
-			Request: &pb.SubscribeRequest_Subscribe{
-				Subscribe: &pb.SubscriptionList{
-					Subscription: []*pb.Subscription{
-						{
-							Path: path,
-						},
-					},
-				},
-			},
-		}
-		for _, s := range bt.subscribeClients {
-			logp.Info("Sending subscribe request: %s", sub)
-			err := s.Send(sub)
-			if err != nil {
-				return err
-			}
-		}
+		bt.responses[device] = respChan
+		bt.errors[device] = errChan
 	}
 
 	bt.recvAll()
@@ -172,8 +211,8 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 			return nil
 		case event := <-bt.events:
 			event.Fields["type"] = b.Info.Name
+			logp.Info("Publishing: %s", event)
 			bt.client.Publish(event)
-			logp.Info("Published: %s", event)
 		}
 	}
 }

@@ -21,10 +21,6 @@ func volumeNotFound(id string) error {
 	return objNotFoundError{"volume", id}
 }
 
-func networkNotFound(id string) error {
-	return objNotFoundError{"network", id}
-}
-
 type objNotFoundError struct {
 	object string
 	id     string

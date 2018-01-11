@@ -519,11 +519,11 @@ func (child *partitionConsumer) parseMessages(msgSet *MessageSet) ([]*ConsumerMe
 	return messages, nil
 }
 
-func (child *partitionConsumer) parseRecords(block *FetchResponseBlock) ([]*ConsumerMessage, error) {
+func (child *partitionConsumer) parseRecords(batch *RecordBatch) ([]*ConsumerMessage, error) {
 	var messages []*ConsumerMessage
 	var incomplete bool
 	prelude := true
-	batch := block.Records.recordBatch
+	originalOffset := child.offset
 
 	for _, rec := range batch.Records {
 		offset := batch.FirstOffset + rec.OffsetDelta
@@ -548,9 +548,15 @@ func (child *partitionConsumer) parseRecords(block *FetchResponseBlock) ([]*Cons
 		}
 	}
 
-	if incomplete || len(messages) == 0 {
+	if incomplete {
 		return nil, ErrIncompleteResponse
 	}
+
+	child.offset = batch.FirstOffset + int64(batch.LastOffsetDelta) + 1
+	if child.offset <= originalOffset {
+		return nil, ErrConsumerOffsetNotAdvanced
+	}
+
 	return messages, nil
 }
 
@@ -599,10 +605,10 @@ func (child *partitionConsumer) parseResponse(response *FetchResponse) ([]*Consu
 		return nil, err
 	}
 
-	if response.Version < 4 {
+	if block.Records.recordsType == legacyRecords {
 		return child.parseMessages(block.Records.msgSet)
 	}
-	return child.parseRecords(block)
+	return child.parseRecords(block.Records.recordBatch)
 }
 
 // brokerConsumer

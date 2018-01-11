@@ -268,7 +268,7 @@ func (devices *DeviceSet) ensureImage(name string, size int64) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := idtools.MkdirAllAndChown(dirname, 0700, idtools.IDPair{UID: uid, GID: gid}); err != nil && !os.IsExist(err) {
+	if err := idtools.MkdirAllAndChown(dirname, 0700, idtools.IDPair{UID: uid, GID: gid}); err != nil {
 		return "", err
 	}
 
@@ -1201,7 +1201,7 @@ func (devices *DeviceSet) growFS(info *devInfo) error {
 	options = joinMountOptions(options, devices.mountOptions)
 
 	if err := mount.Mount(info.DevName(), fsMountPoint, devices.BaseDeviceFilesystem, options); err != nil {
-		return fmt.Errorf("Error mounting '%s' on '%s': %s\n%v", info.DevName(), fsMountPoint, err, string(dmesg.Dmesg(256)))
+		return fmt.Errorf("Error mounting '%s' on '%s' (fstype='%s' options='%s'): %s\n%v", info.DevName(), fsMountPoint, devices.BaseDeviceFilesystem, options, err, string(dmesg.Dmesg(256)))
 	}
 
 	defer unix.Unmount(fsMountPoint, unix.MNT_DETACH)
@@ -1697,10 +1697,10 @@ func (devices *DeviceSet) initDevmapper(doInit bool) (retErr error) {
 	if err != nil {
 		return err
 	}
-	if err := idtools.MkdirAndChown(devices.root, 0700, idtools.IDPair{UID: uid, GID: gid}); err != nil && !os.IsExist(err) {
+	if err := idtools.MkdirAndChown(devices.root, 0700, idtools.IDPair{UID: uid, GID: gid}); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(devices.metadataDir(), 0700); err != nil && !os.IsExist(err) {
+	if err := os.MkdirAll(devices.metadataDir(), 0700); err != nil {
 		return err
 	}
 
@@ -2392,7 +2392,7 @@ func (devices *DeviceSet) MountDevice(hash, path, mountLabel string) error {
 	options = joinMountOptions(options, label.FormatMountLabel("", mountLabel))
 
 	if err := mount.Mount(info.DevName(), path, fstype, options); err != nil {
-		return fmt.Errorf("devmapper: Error mounting '%s' on '%s': %s\n%v", info.DevName(), path, err, string(dmesg.Dmesg(256)))
+		return fmt.Errorf("devmapper: Error mounting '%s' on '%s' (fstype='%s' options='%s'): %s\n%v", info.DevName(), path, fstype, options, err, string(dmesg.Dmesg(256)))
 	}
 
 	if fstype == "xfs" && devices.xfsNospaceRetries != "" {

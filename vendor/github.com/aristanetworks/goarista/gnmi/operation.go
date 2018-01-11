@@ -7,11 +7,14 @@ package gnmi
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"path"
+	"strconv"
 
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"google.golang.org/grpc/codes"
@@ -30,7 +33,7 @@ func Get(ctx context.Context, client pb.GNMIClient, paths [][]string) error {
 	for _, notif := range resp.Notification {
 		for _, update := range notif.Update {
 			fmt.Printf("%s:\n", StrPath(update.Path))
-			fmt.Println(strUpdateVal(update))
+			fmt.Println(StrUpdateVal(update))
 		}
 	}
 	return nil
@@ -62,36 +65,63 @@ func extractJSON(val string) []byte {
 	return jsonBytes
 }
 
-// strUpdateVal will return a string representing the value within the supplied update
-func strUpdateVal(u *pb.Update) string {
+// StrUpdateVal will return a string representing the value within the supplied update
+func StrUpdateVal(u *pb.Update) string {
 	if u.Value != nil {
-		return string(u.Value.Value) // Backwards compatibility with pre-v0.4 gnmi
+		// Backwards compatibility with pre-v0.4 gnmi
+		switch u.Value.Type {
+		case pb.Encoding_JSON, pb.Encoding_JSON_IETF:
+			return strJSON(u.Value.Value)
+		case pb.Encoding_BYTES, pb.Encoding_PROTO:
+			base64.StdEncoding.EncodeToString(u.Value.Value)
+		case pb.Encoding_ASCII:
+			return string(u.Value.Value)
+		default:
+			return string(u.Value.Value)
+		}
 	}
-	return strVal(u.Val)
+	return StrVal(u.Val)
 }
 
-// strVal will return a string representing the supplied value
-func strVal(val *pb.TypedValue) string {
+// StrVal will return a string representing the supplied value
+func StrVal(val *pb.TypedValue) string {
 	switch v := val.GetValue().(type) {
 	case *pb.TypedValue_StringVal:
 		return v.StringVal
 	case *pb.TypedValue_JsonIetfVal:
-		return string(v.JsonIetfVal)
+		return strJSON(v.JsonIetfVal)
+	case *pb.TypedValue_JsonVal:
+		return strJSON(v.JsonVal)
 	case *pb.TypedValue_IntVal:
-		return fmt.Sprintf("%v", v.IntVal)
+		return strconv.FormatInt(v.IntVal, 10)
 	case *pb.TypedValue_UintVal:
-		return fmt.Sprintf("%v", v.UintVal)
+		return strconv.FormatUint(v.UintVal, 10)
 	case *pb.TypedValue_BoolVal:
-		return fmt.Sprintf("%v", v.BoolVal)
+		return strconv.FormatBool(v.BoolVal)
 	case *pb.TypedValue_BytesVal:
-		return string(v.BytesVal)
+		return base64.StdEncoding.EncodeToString(v.BytesVal)
 	case *pb.TypedValue_DecimalVal:
 		return strDecimal64(v.DecimalVal)
+	case *pb.TypedValue_FloatVal:
+		return strconv.FormatFloat(float64(v.FloatVal), 'g', -1, 32)
 	case *pb.TypedValue_LeaflistVal:
 		return strLeaflist(v.LeaflistVal)
+	case *pb.TypedValue_AsciiVal:
+		return v.AsciiVal
+	case *pb.TypedValue_AnyVal:
+		return v.AnyVal.String()
 	default:
 		panic(v)
 	}
+}
+
+func strJSON(inJSON []byte) string {
+	var out bytes.Buffer
+	err := json.Indent(&out, inJSON, "", "  ")
+	if err != nil {
+		return fmt.Sprintf("(error unmarshalling json: %s)\n", err) + string(inJSON)
+	}
+	return out.String()
 }
 
 func strDecimal64(d *pb.Decimal64) string {
@@ -118,7 +148,7 @@ func strLeaflist(v *pb.ScalarArray) string {
 
 	// convert arbitrary TypedValues to string form
 	for _, elm := range v.Element {
-		str := strVal(elm)
+		str := StrVal(elm)
 		s = append(s, str)
 		sz += len(str) + 1 // %v + ,
 	}
@@ -244,7 +274,7 @@ func LogSubscribeResponse(response *pb.SubscribeResponse) error {
 		prefix := StrPath(resp.Update.Prefix)
 		for _, update := range resp.Update.Update {
 			fmt.Printf("%s = %s\n", path.Join(prefix, StrPath(update.Path)),
-				strUpdateVal(update))
+				StrUpdateVal(update))
 		}
 	}
 	return nil

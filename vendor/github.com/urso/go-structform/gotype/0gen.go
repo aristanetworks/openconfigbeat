@@ -1,9 +1,5 @@
 package gotype
 
-// define mktmpl alias
-//go:generate -command mktmpl go run ../internal/gen/gen_yaml.go
-// go:generate -command mktmpl gen
-
 //go:generate mktmpl -f -o fold_map_inline.generated.go fold_map_inline.yml
 //go:generate mktmpl -f -o fold_refl_sel.generated.go fold_refl_sel.yml
 //go:generate mktmpl -f -o stacks.generated.go stacks.yml

@@ -181,6 +181,13 @@ type Config struct {
 	// be able to increase this to get more content into each gossip packet.
 	PacketBufferSize int
 
+	// reapEntryInterval duration of a deleted entry before being garbage collected
+	reapEntryInterval time.Duration
+
+	// reapNetworkInterval duration of a delted network before being garbage collected
+	// NOTE this MUST always be higher than reapEntryInterval
+	reapNetworkInterval time.Duration
+
 	// StatsPrintPeriod the period to use to print queue stats
 	// Default is 5min
 	StatsPrintPeriod time.Duration
@@ -220,12 +227,18 @@ func DefaultConfig() *Config {
 		PacketBufferSize:  1400,
 		StatsPrintPeriod:  5 * time.Minute,
 		HealthPrintPeriod: 1 * time.Minute,
+		reapEntryInterval: 30 * time.Minute,
 	}
 }
 
 // New creates a new instance of NetworkDB using the Config passed by
 // the caller.
 func New(c *Config) (*NetworkDB, error) {
+	// The garbage collection logic for entries leverage the presence of the network.
+	// For this reason the expiration time of the network is put slightly higher than the entry expiration so that
+	// there is at least 5 extra cycle to make sure that all the entries are properly deleted before deleting the network.
+	c.reapNetworkInterval = c.reapEntryInterval + 5*reapPeriod
+
 	nDB := &NetworkDB{
 		config:         c,
 		indexes:        make(map[int]*radix.Tree),
@@ -241,7 +254,7 @@ func New(c *Config) (*NetworkDB, error) {
 	nDB.indexes[byTable] = radix.New()
 	nDB.indexes[byNetwork] = radix.New()
 
-	logrus.Debugf("New memberlist node - Node:%v will use memberlist nodeID:%v", c.Hostname, c.NodeID)
+	logrus.Infof("New memberlist node - Node:%v will use memberlist nodeID:%v with config:%+v", c.Hostname, c.NodeID, c)
 	if err := nDB.clusterInit(); err != nil {
 		return nil, err
 	}
@@ -297,6 +310,10 @@ func (nDB *NetworkDB) Peers(nid string) []PeerInfo {
 				Name: node.Name,
 				IP:   node.Addr.String(),
 			})
+		} else {
+			// Added for testing purposes, this condition should never happen else mean that the network list
+			// is out of sync with the node list
+			peers = append(peers, PeerInfo{})
 		}
 	}
 	return peers
@@ -384,17 +401,23 @@ func (nDB *NetworkDB) UpdateEntry(tname, nid, key string, value []byte) error {
 	return nil
 }
 
+// TableElem elem
+type TableElem struct {
+	Value []byte
+	owner string
+}
+
 // GetTableByNetwork walks the networkdb by the give table and network id and
 // returns a map of keys and values
-func (nDB *NetworkDB) GetTableByNetwork(tname, nid string) map[string]interface{} {
-	entries := make(map[string]interface{})
+func (nDB *NetworkDB) GetTableByNetwork(tname, nid string) map[string]*TableElem {
+	entries := make(map[string]*TableElem)
 	nDB.indexes[byTable].WalkPrefix(fmt.Sprintf("/%s/%s", tname, nid), func(k string, v interface{}) bool {
 		entry := v.(*entry)
 		if entry.deleting {
 			return false
 		}
 		key := k[strings.LastIndex(k, "/")+1:]
-		entries[key] = entry.value
+		entries[key] = &TableElem{Value: entry.value, owner: entry.node}
 		return false
 	})
 	return entries
@@ -414,7 +437,7 @@ func (nDB *NetworkDB) DeleteEntry(tname, nid, key string) error {
 		node:     nDB.config.NodeID,
 		value:    value,
 		deleting: true,
-		reapTime: reapEntryInterval,
+		reapTime: nDB.config.reapEntryInterval,
 	}
 
 	if err := nDB.sendTableEvent(TableEventTypeDelete, nid, tname, key, entry); err != nil {
@@ -428,7 +451,7 @@ func (nDB *NetworkDB) DeleteEntry(tname, nid, key string) error {
 	return nil
 }
 
-func (nDB *NetworkDB) deleteNetworkEntriesForNode(deletedNode string) {
+func (nDB *NetworkDB) deleteNodeFromNetworks(deletedNode string) {
 	for nid, nodes := range nDB.networkNodes {
 		updatedNodes := make([]string, 0, len(nodes))
 		for _, node := range nodes {
@@ -487,7 +510,7 @@ func (nDB *NetworkDB) deleteNodeNetworkEntries(nid, node string) {
 				node:     oldEntry.node,
 				value:    oldEntry.value,
 				deleting: true,
-				reapTime: reapEntryInterval,
+				reapTime: nDB.config.reapEntryInterval,
 			}
 
 			// we arrived at this point in 2 cases:
@@ -530,7 +553,9 @@ func (nDB *NetworkDB) deleteNodeTableEntries(node string) {
 
 		nDB.deleteEntry(nid, tname, key)
 
-		nDB.broadcaster.Write(makeEvent(opDelete, tname, nid, key, oldEntry.value))
+		if !oldEntry.deleting {
+			nDB.broadcaster.Write(makeEvent(opDelete, tname, nid, key, oldEntry.value))
+		}
 		return false
 	})
 }
@@ -580,6 +605,9 @@ func (nDB *NetworkDB) JoinNetwork(nid string) error {
 	nodeNetworks[nid] = &network{id: nid, ltime: ltime, entriesNumber: entries}
 	nodeNetworks[nid].tableBroadcasts = &memberlist.TransmitLimitedQueue{
 		NumNodes: func() int {
+			//TODO fcrisciani this can be optimized maybe avoiding the lock?
+			// this call is done each GetBroadcasts call to evaluate the number of
+			// replicas for the message
 			nDB.RLock()
 			defer nDB.RUnlock()
 			return len(nDB.networkNodes[nid])
@@ -635,7 +663,7 @@ func (nDB *NetworkDB) LeaveNetwork(nid string) error {
 
 	logrus.Debugf("%v(%v): leaving network %s", nDB.config.Hostname, nDB.config.NodeID, nid)
 	n.ltime = ltime
-	n.reapTime = reapNetworkInterval
+	n.reapTime = nDB.config.reapNetworkInterval
 	n.leaving = true
 	return nil
 }

@@ -80,6 +80,7 @@ func (p *cmdProbe) run(ctx context.Context, d *Daemon, cntr *container.Container
 	execConfig.Tty = false
 	execConfig.Privileged = false
 	execConfig.User = cntr.Config.User
+	execConfig.WorkingDir = cntr.Config.WorkingDir
 
 	linkedEnv, err := d.setupLinkedContainers(cntr)
 	if err != nil {
@@ -254,6 +255,8 @@ func getProbe(c *container.Container) probe {
 		return &cmdProbe{shell: false}
 	case "CMD-SHELL":
 		return &cmdProbe{shell: true}
+	case "NONE":
+		return nil
 	default:
 		logrus.Warnf("Unknown healthcheck type '%s' (expected 'CMD') in container %s", config.Test[0], c.ID)
 		return nil

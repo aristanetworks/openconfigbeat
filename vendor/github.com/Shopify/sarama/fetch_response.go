@@ -79,18 +79,11 @@ func (b *FetchResponseBlock) decode(pd packetDecoder, version int16) (err error)
 	if err != nil {
 		return err
 	}
-	var records Records
-	if version >= 4 {
-		records = newDefaultRecords(nil)
-	} else {
-		records = newLegacyRecords(nil)
-	}
 	if recordsSize > 0 {
-		if err = records.decode(recordsDecoder); err != nil {
+		if err = b.Records.decode(recordsDecoder); err != nil {
 			return err
 		}
 	}
-	b.Records = records
 
 	return nil
 }
@@ -314,6 +307,16 @@ func (r *FetchResponse) AddRecord(topic string, partition int32, key, value Enco
 		frb.Records = newDefaultRecords(batch)
 	}
 	batch.addRecord(rec)
+}
+
+func (r *FetchResponse) SetLastOffsetDelta(topic string, partition int32, offset int32) {
+	frb := r.getOrCreateBlock(topic, partition)
+	batch := frb.Records.recordBatch
+	if batch == nil {
+		batch = &RecordBatch{Version: 2}
+		frb.Records = newDefaultRecords(batch)
+	}
+	batch.LastOffsetDelta = offset
 }
 
 func (r *FetchResponse) SetLastStableOffset(topic string, partition int32, offset int64) {

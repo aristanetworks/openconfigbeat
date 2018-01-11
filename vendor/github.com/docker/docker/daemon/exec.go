@@ -31,14 +31,6 @@ func (d *Daemon) registerExecCommand(container *container.Container, config *exe
 	d.execCommands.Add(config.ID, config)
 }
 
-func (d *Daemon) registerExecPidUnlocked(container *container.Container, config *exec.Config) {
-	logrus.Debugf("registering pid %v for exec %v", config.Pid, config.ID)
-	// Storing execs in container in order to kill them gracefully whenever the container is stopped or removed.
-	container.ExecCommands.SetPidUnlocked(config.ID, config.Pid)
-	// Storing execs in daemon for easy access via Engine API.
-	d.execCommands.SetPidUnlocked(config.ID, config.Pid)
-}
-
 // ExecExists looks up the exec instance and returns a bool if it exists or not.
 // It will also return the error produced by `getConfig`
 func (d *Daemon) ExecExists(name string) (bool, error) {
@@ -130,6 +122,7 @@ func (d *Daemon) ContainerExecCreate(name string, config *types.ExecConfig) (str
 	execConfig.Tty = config.Tty
 	execConfig.Privileged = config.Privileged
 	execConfig.User = config.User
+	execConfig.WorkingDir = config.WorkingDir
 
 	linkedEnv, err := d.setupLinkedContainers(cntr)
 	if err != nil {
@@ -138,6 +131,9 @@ func (d *Daemon) ContainerExecCreate(name string, config *types.ExecConfig) (str
 	execConfig.Env = container.ReplaceOrAppendEnvValues(cntr.CreateDaemonEnvironment(config.Tty, linkedEnv), config.Env)
 	if len(execConfig.User) == 0 {
 		execConfig.User = cntr.Config.User
+	}
+	if len(execConfig.WorkingDir) == 0 {
+		execConfig.WorkingDir = cntr.Config.WorkingDir
 	}
 
 	d.registerExecCommand(cntr, execConfig)
@@ -219,7 +215,7 @@ func (d *Daemon) ContainerExecStart(ctx context.Context, name string, stdin io.R
 		Args:     append([]string{ec.Entrypoint}, ec.Args...),
 		Env:      ec.Env,
 		Terminal: ec.Tty,
-		Cwd:      c.Config.WorkingDir,
+		Cwd:      ec.WorkingDir,
 	}
 	if p.Cwd == "" {
 		p.Cwd = "/"
@@ -253,7 +249,6 @@ func (d *Daemon) ContainerExecStart(ctx context.Context, name string, stdin io.R
 		return translateContainerdStartErr(ec.Entrypoint, ec.SetExitCode, err)
 	}
 	ec.Pid = systemPid
-	d.registerExecPidUnlocked(c, ec)
 	c.ExecCommands.Unlock()
 	ec.Unlock()
 

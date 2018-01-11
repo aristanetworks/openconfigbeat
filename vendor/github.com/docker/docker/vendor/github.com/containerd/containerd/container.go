@@ -3,11 +3,13 @@ package containerd
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/containerd/containerd/api/services/tasks/v1"
 	"github.com/containerd/containerd/api/types"
+	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/containers"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/typeurl"
@@ -25,17 +27,17 @@ type Container interface {
 	// Delete removes the container
 	Delete(context.Context, ...DeleteOpts) error
 	// NewTask creates a new task based on the container metadata
-	NewTask(context.Context, IOCreation, ...NewTaskOpts) (Task, error)
+	NewTask(context.Context, cio.Creator, ...NewTaskOpts) (Task, error)
 	// Spec returns the OCI runtime specification
 	Spec(context.Context) (*specs.Spec, error)
 	// Task returns the current task for the container
 	//
-	// If IOAttach options are passed the client will reattach to the IO for the running
+	// If cio.Attach options are passed the client will reattach to the IO for the running
 	// task. If no task exists for the container a NotFound error is returned
 	//
 	// Clients must make sure that only one reader is attached to the task and consuming
 	// the output from the task's fifos
-	Task(context.Context, IOAttach) (Task, error)
+	Task(context.Context, cio.Attach) (Task, error)
 	// Image returns the image that the container is based on
 	Image(context.Context) (Image, error)
 	// Labels returns the labels set on the container
@@ -138,7 +140,7 @@ func (c *container) Delete(ctx context.Context, opts ...DeleteOpts) error {
 	return c.client.ContainerService().Delete(ctx, c.id)
 }
 
-func (c *container) Task(ctx context.Context, attach IOAttach) (Task, error) {
+func (c *container) Task(ctx context.Context, attach cio.Attach) (Task, error) {
 	return c.loadTask(ctx, attach)
 }
 
@@ -161,11 +163,17 @@ func (c *container) Image(ctx context.Context) (Image, error) {
 	}, nil
 }
 
-func (c *container) NewTask(ctx context.Context, ioCreate IOCreation, opts ...NewTaskOpts) (Task, error) {
+func (c *container) NewTask(ctx context.Context, ioCreate cio.Creator, opts ...NewTaskOpts) (_ Task, err error) {
 	i, err := ioCreate(c.id)
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if err != nil && i != nil {
+			i.Cancel()
+			i.Close()
+		}
+	}()
 	cfg := i.Config()
 	request := &tasks.CreateTaskRequest{
 		ContainerID: c.id,
@@ -251,7 +259,7 @@ func (c *container) Update(ctx context.Context, opts ...UpdateContainerOpts) err
 	return nil
 }
 
-func (c *container) loadTask(ctx context.Context, ioAttach IOAttach) (Task, error) {
+func (c *container) loadTask(ctx context.Context, ioAttach cio.Attach) (Task, error) {
 	response, err := c.client.TaskService().Get(ctx, &tasks.GetRequest{
 		ContainerID: c.id,
 	})
@@ -262,7 +270,7 @@ func (c *container) loadTask(ctx context.Context, ioAttach IOAttach) (Task, erro
 		}
 		return nil, err
 	}
-	var i IO
+	var i cio.IO
 	if ioAttach != nil {
 		if i, err = attachExistingIO(response, ioAttach); err != nil {
 			return nil, err
@@ -281,20 +289,23 @@ func (c *container) get(ctx context.Context) (containers.Container, error) {
 	return c.client.ContainerService().Get(ctx, c.id)
 }
 
-func attachExistingIO(response *tasks.GetResponse, ioAttach IOAttach) (IO, error) {
-	// get the existing fifo paths from the task information stored by the daemon
-	paths := &FIFOSet{
-		Dir: getFifoDir([]string{
-			response.Process.Stdin,
-			response.Process.Stdout,
-			response.Process.Stderr,
-		}),
-		In:       response.Process.Stdin,
-		Out:      response.Process.Stdout,
-		Err:      response.Process.Stderr,
-		Terminal: response.Process.Terminal,
+// get the existing fifo paths from the task information stored by the daemon
+func attachExistingIO(response *tasks.GetResponse, ioAttach cio.Attach) (cio.IO, error) {
+	path := getFifoDir([]string{
+		response.Process.Stdin,
+		response.Process.Stdout,
+		response.Process.Stderr,
+	})
+	closer := func() error {
+		return os.RemoveAll(path)
 	}
-	return ioAttach(paths)
+	fifoSet := cio.NewFIFOSet(cio.Config{
+		Stdin:    response.Process.Stdin,
+		Stdout:   response.Process.Stdout,
+		Stderr:   response.Process.Stderr,
+		Terminal: response.Process.Terminal,
+	}, closer)
+	return ioAttach(fifoSet)
 }
 
 // getFifoDir looks for any non-empty path for a stdio fifo
