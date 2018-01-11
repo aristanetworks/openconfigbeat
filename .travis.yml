@@ -1,5 +1,7 @@
 sudo: required
 dist: trusty
+services:
+- docker
 language: go
 go:
 - 1.9
@@ -10,6 +12,7 @@ env:
   matrix:
   - TARGETS="check"
   - TARGETS="testsuite"
+  - TARGETS="beater-test"
   global:
   - GOX_FLAGS="-arch amd64"
 addons:
