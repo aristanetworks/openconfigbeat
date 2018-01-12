@@ -2,7 +2,7 @@ sudo: required
 dist: trusty
 language: go
 go:
-- 1.7
+- 1.9
 os:
 - linux
 - osx

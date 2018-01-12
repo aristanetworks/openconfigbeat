@@ -7,6 +7,7 @@ package beater
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -64,25 +65,55 @@ func convertDelete(dataset string, prefix string, delete *pb.Path) common.MapStr
 }
 
 func formatValue(update *pb.Update) (interface{}, error) {
-	var output interface{}
 	if update.Value != nil {
-		if update.Value.Type == pb.Encoding_JSON || update.Value.Type == pb.Encoding_JSON_IETF {
+		switch update.Value.Type {
+		case pb.Encoding_JSON, pb.Encoding_JSON_IETF:
 			decoder := json.NewDecoder(bytes.NewReader(update.Value.Value))
 			decoder.UseNumber()
+			var output interface{}
 			err := decoder.Decode(&output)
 			return output, err
+		case pb.Encoding_BYTES, pb.Encoding_PROTO:
+			return base64.StdEncoding.EncodeToString(update.Value.Value), nil
+		case pb.Encoding_ASCII:
+			return string(update.Value.Value), nil
 		}
-		return gnmi.StrUpdateVal(update), nil
 	}
 	switch v := update.Val.GetValue().(type) {
+	case *pb.TypedValue_StringVal:
+		return v.StringVal, nil
 	case *pb.TypedValue_JsonIetfVal:
+		var output interface{}
 		err := json.Unmarshal(v.JsonIetfVal, output)
 		return output, err
 	case *pb.TypedValue_JsonVal:
+		var output interface{}
 		err := json.Unmarshal(v.JsonVal, output)
 		return output, err
+	case *pb.TypedValue_IntVal:
+		return v.IntVal, nil
+	case *pb.TypedValue_UintVal:
+		return v.UintVal, nil
+	case *pb.TypedValue_BoolVal:
+		return v.BoolVal, nil
+	case *pb.TypedValue_BytesVal:
+		return base64.StdEncoding.EncodeToString(v.BytesVal), nil
+	case *pb.TypedValue_DecimalVal:
+		// TODO: figure out a representation
+		return nil, nil
+	case *pb.TypedValue_FloatVal:
+		return v.FloatVal, nil
+	case *pb.TypedValue_LeaflistVal:
+		// TODO: figure out a representation
+		return nil, nil
+	case *pb.TypedValue_AsciiVal:
+		return v.AsciiVal, nil
+	case *pb.TypedValue_AnyVal:
+		// TODO: figure out a representation
+		return nil, nil
+	default:
+		return nil, fmt.Errorf("unexpected type: %s", v)
 	}
-	return gnmi.StrVal(update.Val), nil
 }
 
 func convertUpdate(dataset string, prefix string, update *pb.Update) (common.MapStr,
