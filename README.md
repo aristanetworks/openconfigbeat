@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/aristanetworks/openconfigbeat.svg?branch=master)](https://travis-ci.org/aristanetworks/openconfigbeat)
-
 # Openconfigbeat
 
 Welcome to Openconfigbeat, the Beat for [OpenConfig](http://openconfig.net)-compatible network devices.
