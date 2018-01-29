@@ -3,56 +3,15 @@
 Welcome to Openconfigbeat, the Beat for [OpenConfig](http://openconfig.net)-compatible network devices.
 
 Ensure that this folder is at the following location:
-`${GOPATH}/src/github.com/aristanetworks`
+`${GOPATH}/src/github.com/aristanetworks`, or if you prefer you can download a prebuilt binary under [releases](https://github.com/aristanetworks/openconfigbeat/releases).
 
-Document example:
-
-```json
-{
-  "@timestamp": "2016-10-06T22:38:51.770Z",
-  "beat": {
-    "hostname": "beater",
-    "name": "openconfigbeat"
-  },
-  "dataset": "cairo",
-  "type": "openconfigbeat",
-  "update": {
-    "/": {
-      "openconfig-bgp:bgp": {
-        "global": {
-          "config": {
-            "as": 55064,
-            "router-id": "0.0.0.0"
-          },
-        },
-      },
-      "openconfig-vlan:vlans": {
-        "vlan": [
-          {
-            "config": {
-              "name": "default",
-              "status": "ACTIVE",
-              "tpid": "oc-vlan-types:TPID_0x8100",
-              "vlan-id": 1
-            },
-            "state": {
-              "status": "ACTIVE",
-              "tpid": "oc-vlan-types:TPID_0x8100"
-            },
-            "vlan-id": 1
-          }
-        ]
-      }
-    }
-  }
-}
-```
+![preview](preview.png)
 
 ## Getting Started with Openconfigbeat
 
 ### Requirements
 
-* [Golang](https://golang.org/dl/) >= 1.6
+* [Golang](https://golang.org/dl/) >= 1.9
 * [Glide](https://github.com/Masterminds/glide) >= 0.10.0
 
 ### Configuration
@@ -78,7 +37,7 @@ To run Openconfigbeat with debugging output enabled, run:
 
 To override an individual setting in the config file you can use `-E`, for example:
 ```
-./openconfigbeat -E openconfigbeat.addresses=device1,device2
+./openconfigbeat -E output.elasticsearch=elasticsearch:9200
 ```
 
 To run as a container:
