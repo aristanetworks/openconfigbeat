@@ -13,6 +13,11 @@ ELASTICSEARCH_HOST ?= 127.0.0.1
 DOCKER_IMAGE = docker.elastic.co/elasticsearch/elasticsearch:$(ELASTICSEARCH_VERSION)
 DOCKER_CONTAINER = openconfigbeat-elasticsearch
 GO = go
+GOPKGVERSION := $(shell git describe --tags --match "[0-9]*" --abbrev=7 HEAD)
+ifndef GOPKGVERSION
+   $(error unable to determine git version)
+endif
+GOBUILD_FLAGS ?= -ldflags "-s -w -X github.com/aristanetworks/openconfigbeat/cmd.Version=$(GOPKGVERSION)"
 
 # Path to the libbeat Makefile
 -include $(ES_BEATS)/libbeat/scripts/Makefile
