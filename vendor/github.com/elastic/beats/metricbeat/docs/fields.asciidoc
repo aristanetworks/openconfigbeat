@@ -2013,7 +2013,6 @@ Number of items/documents that are replicas.
 [[exported-fields-docker-processor]]
 == Docker fields
 
-beta[]
 Docker stats collected from Docker.
 
 
@@ -4996,7 +4995,6 @@ Total number of connections.
 [[exported-fields-kubernetes-processor]]
 == Kubernetes fields
 
-beta[]
 Kubernetes metadata added by the kubernetes processor
 
 
@@ -5016,6 +5014,14 @@ Kubernetes pod name
 type: keyword
 
 Kubernetes namespace
+
+
+[float]
+=== `kubernetes.node.name`
+
+type: keyword
+
+Kubernetes node name
 
 
 [float]
@@ -5105,6 +5111,26 @@ CPU used nanocores
 
 
 [float]
+=== `kubernetes.container.cpu.usage.node.pct`
+
+type: scaled_float
+
+format: percentage
+
+CPU usage as a percentage of the total node allocatable CPU
+
+
+[float]
+=== `kubernetes.container.cpu.usage.limit.pct`
+
+type: scaled_float
+
+format: percentage
+
+CPU usage as a percentage of the defined limit for the container (or total node allocatable CPU if unlimited)
+
+
+[float]
 == logs fields
 
 Logs info
@@ -5190,6 +5216,26 @@ type: long
 format: bytes
 
 Total memory usage
+
+
+[float]
+=== `kubernetes.container.memory.usage.node.pct`
+
+type: scaled_float
+
+format: percentage
+
+Memory usage as a percentage of the total node allocatable memory
+
+
+[float]
+=== `kubernetes.container.memory.usage.limit.pct`
+
+type: scaled_float
+
+format: percentage
+
+Memory usage as a percentage of the defined limit for the container (or total node allocatable memory if unlimited)
 
 
 
@@ -5420,14 +5466,6 @@ UUID version of the object
 
 kubernetes node metrics
 
-
-
-[float]
-=== `kubernetes.node.name`
-
-type: keyword
-
-Node name
 
 
 [float]
@@ -5712,6 +5750,74 @@ Tx errors
 
 
 [float]
+== cpu fields
+
+CPU usage metrics
+
+
+
+
+[float]
+=== `kubernetes.pod.cpu.usage.nanocores`
+
+type: long
+
+CPU used nanocores
+
+
+[float]
+=== `kubernetes.pod.cpu.usage.node.pct`
+
+type: scaled_float
+
+format: percentage
+
+CPU usage as a percentage of the total node CPU
+
+
+[float]
+=== `kubernetes.pod.cpu.usage.limit.pct`
+
+type: scaled_float
+
+format: percentage
+
+CPU usage as a percentage of the defined limit for the pod containers (or total node CPU if unlimited)
+
+
+
+
+[float]
+=== `kubernetes.pod.memory.usage.bytes`
+
+type: long
+
+format: bytes
+
+Total memory usage
+
+
+[float]
+=== `kubernetes.pod.memory.usage.node.pct`
+
+type: scaled_float
+
+format: percentage
+
+Memory usage as a percentage of the total node allocatable memory
+
+
+[float]
+=== `kubernetes.pod.memory.usage.limit.pct`
+
+type: scaled_float
+
+format: percentage
+
+Memory usage as a percentage of the defined limit for the pod containers (or total node allocatable memory if unlimited)
+
+
+[float]
 == container fields
 
 kubernetes container metrics
@@ -5878,7 +5984,7 @@ Node unschedulable status
 [float]
 === `kubernetes.node.cpu.allocatable.cores`
 
-type: long
+type: float
 
 Node CPU allocatable cores
 
@@ -6492,7 +6598,7 @@ Combination of database and collection name.
 
 
 [float]
-=== `mongodb.collstats.total.time`
+=== `mongodb.collstats.total.time.us`
 
 type: long
 

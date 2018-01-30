@@ -1,25 +1,23 @@
-hash: c0110a7fc50c748fa5f09c9ee938f0ced9fc735cf2af54fc3395e91f77daef48
-updated: 2018-01-12T17:18:08.256306+01:00
+hash: 3fc8bac19692ded1e0fb20d0054386e787912acab3e0693134c0da3901f937d1
+updated: 2018-01-30T10:29:14.870427-08:00
 imports:
-- name: github.com/aristanetworks/glog
-  version: b0d951ca530387842f35331df6fd8d9b501d5f90
 - name: github.com/aristanetworks/goarista
-  version: 49e89e3a7a0626cb3ff744c539048333913129b0
+  version: 427aa1e96d9056ff23cb68e3e1ef49c1c3e190b0
   subpackages:
   - elasticsearch
   - gnmi
   - openconfig
 - name: github.com/davecgh/go-spew
-  version: ecdeabc65495df2dec95d7c4a4c3e021903035e5
+  version: db69d09d2c587e9b9677f991dfcab1fc24d9086e
   subpackages:
   - spew
 - name: github.com/docker/distribution
-  version: 277ed486c948042cab91ad367c379524f3b25e18
+  version: 5cb406d511b7b9163bff9b6439072e4892e5ae3b
   subpackages:
   - digestset
   - reference
 - name: github.com/docker/docker
-  version: 92309e34e42aec3a0e041403bdd3c4fc0dc20269
+  version: 40a9d5d24cda0d938f3c41dceef41b97b6b4e847
   subpackages:
   - api
   - api/types
@@ -55,12 +53,13 @@ imports:
 - name: github.com/eapache/queue
   version: 44cc805cf13205b55f69e14bcb69867d1ae92f98
 - name: github.com/elastic/beats
-  version: a3970eec1d6d0766fdfa14104f5355b5cefbabb4
+  version: 847b6acb157997e4eca3c9aae7adfc36d89ad2ff
   subpackages:
   - libbeat/api
   - libbeat/autodiscover
   - libbeat/autodiscover/meta
   - libbeat/autodiscover/providers/docker
+  - libbeat/autodiscover/providers/kubernetes
   - libbeat/autodiscover/template
   - libbeat/beat
   - libbeat/cfgfile
@@ -133,7 +132,7 @@ imports:
   - client/v2
   - protocol/v2
 - name: github.com/elastic/go-ucfg
-  version: b392c80ad6ac8a81a3e38238b25f41843f39500f
+  version: bda09c7b9afc6263a3fd592fcd7063d03f6acf0f
   subpackages:
   - cfgutil
   - flag
@@ -141,37 +140,18 @@ imports:
   - json
   - yaml
 - name: github.com/elastic/gosigar
-  version: e4f71353e19962e0a6bcace6ba9c74166ed9d971
+  version: a3814ce5008e612a0c6d027608b54e1d0d9a5613
   subpackages:
+  - cgroup
+  - sys/linux
   - sys/windows
 - name: github.com/ericchiang/k8s
-  version: e6ee318e52e6b7faeeb8da10ac58a22342b5caa9
+  version: 5912993f00cb7c971aaa54529a06bd3eecd6c3d4
   subpackages:
-  - api/resource
-  - api/unversioned
-  - api/v1
-  - apis/apps/v1alpha1
-  - apis/apps/v1beta1
-  - apis/authentication/v1
-  - apis/authentication/v1beta1
-  - apis/authorization/v1
-  - apis/authorization/v1beta1
-  - apis/autoscaling/v1
-  - apis/autoscaling/v2alpha1
-  - apis/batch/v1
-  - apis/batch/v2alpha1
-  - apis/certificates/v1alpha1
-  - apis/certificates/v1beta1
-  - apis/extensions/v1beta1
-  - apis/imagepolicy/v1alpha1
+  - apis/apiextensions/v1beta1
+  - apis/core/v1
   - apis/meta/v1
-  - apis/policy/v1alpha1
-  - apis/policy/v1beta1
-  - apis/rbac/v1alpha1
-  - apis/rbac/v1beta1
-  - apis/settings/v1alpha1
-  - apis/storage/v1
-  - apis/storage/v1beta1
+  - apis/resource
   - runtime
   - runtime/schema
   - util/intstr
@@ -190,11 +170,11 @@ imports:
   subpackages:
   - oleutil
 - name: github.com/gogo/protobuf
-  version: 160de10b2537169b5ae3e7e221d28269ef40d311
+  version: 26de2f9a7d3b1826f275e7a97c8cad5080589426
   subpackages:
   - proto
 - name: github.com/golang/protobuf
-  version: 1e59b77b52bf8e4b449a57e6f79f21226d571845
+  version: 925541529c1fa6821df4e44ce2723319eb2be768
   subpackages:
   - proto
   - protoc-gen-go/descriptor
@@ -221,7 +201,7 @@ imports:
   version: 57fdcb988a5c543893cc61bce354a6e24ab70022
   repo: https://github.com/mattn/go-isatty
 - name: github.com/Microsoft/go-winio
-  version: b7c3cf0d1286c7b62b140ed960a00b154c1b6fcc
+  version: 7da180ee92d8bd8bb8c37fc560e673e6557c392f
 - name: github.com/mitchellh/hashstructure
   version: 2bca23e0e452137f789efbc8610126fd8b94f73b
 - name: github.com/openconfig/gnmi
@@ -240,25 +220,29 @@ imports:
   - specs-go
   - specs-go/v1
 - name: github.com/pierrec/lz4
-  version: 2fcda4cb7018ce05a25959d2fe08c83e3329f169
+  version: ed8d4cc3b461464e69798080a0092bd028910298
 - name: github.com/pierrec/xxHash
   version: a0006b13c722f7f12368c00a3d3c2ae8a999a0c6
   subpackages:
   - xxHash32
+- name: github.com/pierrre/gotestcover
+  version: 924dca7d15f052db629b3fd04b0844e26eff49a6
 - name: github.com/pkg/errors
-  version: e881fd58d78e04cf6d0de1217f8707c8cc2249bc
+  version: 30136e27e2ac8d167177e8a583aa4c3fea5be833
 - name: github.com/rcrowley/go-metrics
-  version: e181e095bae94582363434144c61a9653aff6e50
+  version: 8732c616f52954686704c8645fe1a9d59e9df7c1
 - name: github.com/satori/go.uuid
   version: 36e9d2ebbde5e3f13ab2e25625fd453271d6522e
 - name: github.com/Shopify/sarama
-  version: f0c32558d5e8d914b3de1a6f504e2ca88aaa40c4
+  version: 0f4f8caef994ca7e4f9072c1858b7c6761ed498f
 - name: github.com/spf13/cobra
-  version: b95ab734e27d33e0d8fbabf71ca990568d4e2020
+  version: f91529fc609202eededff4de2dc0ba2f662240a3
 - name: github.com/spf13/pflag
   version: 4c012f6dcd9546820e378d0bdda4d8fc772cdfea
 - name: github.com/StackExchange/wmi
-  version: ea383cf3ba6ec950874b8486cd72356d007c768f
+  version: 5d049714c4a64225c3c79a7cf7d02f7fb5b96338
+- name: github.com/stretchr/testify
+  version: b91bfb9ebec76498946beb6af7c0230c7cc7ba6c
 - name: github.com/urso/go-structform
   version: 035638634d48c28a09bb7aa00ef78f4ffb83fa34
   subpackages:
@@ -280,12 +264,12 @@ imports:
   - zapcore
   - zaptest/observer
 - name: golang.org/x/crypto
-  version: 5f55bce93ad2c89f411e009659bb1fd83da36e7b
+  version: 1875d0a70c90e57f11972aefd42276df65e895b9
   subpackages:
   - pbkdf2
   - ssh/terminal
 - name: golang.org/x/net
-  version: 5ccada7d0a7ba9aeb5d3aca8d3501b4c2a509fec
+  version: 0ed95abb35c445290478a5348a7b38bb154135fd
   subpackages:
   - context
   - context/ctxhttp
@@ -312,16 +296,12 @@ imports:
   - transform
   - unicode/bidi
   - unicode/norm
-- name: golang.org/x/time
-  version: 6dc17368e09b0e8634d71cac8168d853e869a0c7
-  subpackages:
-  - rate
 - name: google.golang.org/genproto
-  version: a8101f21cf983e773d0c1133ebc5424792003214
+  version: 4eb30f4778eed4c258ba66527a0d4f9ec8a36c45
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: 1cd234627e6f392ade0527d593eb3fe53e832d4a
+  version: 0bd008f5fadb62d228f12b18d016709e8139a7af
   subpackages:
   - balancer
   - balancer/base
@@ -330,6 +310,7 @@ imports:
   - connectivity
   - credentials
   - encoding
+  - encoding/proto
   - grpclb/grpc_lb_v1/messages
   - grpclog
   - internal

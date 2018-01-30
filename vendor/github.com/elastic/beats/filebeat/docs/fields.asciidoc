@@ -609,7 +609,6 @@ Region in which this host is running.
 [[exported-fields-docker-processor]]
 == Docker fields
 
-beta[]
 Docker stats collected from Docker.
 
 
@@ -845,7 +844,6 @@ The full trace in the log line.
 [[exported-fields-kubernetes-processor]]
 == Kubernetes fields
 
-beta[]
 Kubernetes metadata added by the kubernetes processor
 
 
@@ -865,6 +863,14 @@ Kubernetes pod name
 type: keyword
 
 Kubernetes namespace
+
+
+[float]
+=== `kubernetes.node.name`
+
+type: keyword
+
+Kubernetes node name
 
 
 [float]
@@ -951,7 +957,15 @@ Log stream when reading container logs, can be 'stdout' or 'stderr'
 
 required: True
 
-The prospector type from which the event was generated. This field is set to the value specified for the `type` option in the prospector section of the Filebeat config file.
+The input type from which the event was generated. This field is set to the value specified for the `type` option in the input section of the Filebeat config file. (DEPRECATED: see `event.type`)
+
+
+[float]
+=== `event.type`
+
+required: True
+
+The input type from which the event was generated. This field is set to the value specified for the `type` option in the input section of the Filebeat config file.
 
 
 [float]
