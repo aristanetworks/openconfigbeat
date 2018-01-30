@@ -54,6 +54,7 @@ func (m *mockBatch) CancelledEvents(events []publisher.Event) {
 
 func TestPublish(t *testing.T) {
 	const tempSensor1 = "/Sysdb/environment/archer/temperature/status/TempSensor1"
+	// TODO: test Notifications
 	messages := []map[string]interface{}{
 		{
 			"path": tempSensor1 + "/maxTemperatureTime",
@@ -96,7 +97,6 @@ func TestPublish(t *testing.T) {
 			},
 		}, {
 			"path": tempSensor1 + "/maxTemperature",
-			// TODO: figure out the correct way to represent JSON
 			"update": map[string]interface{}{
 				"value": 37.79170479593131,
 			},
