@@ -99,8 +99,6 @@
 - key: docker
   title: Docker
   description: >
-    beta[]
-
     Docker stats collected from Docker.
   short_config: false
   anchor: docker-processor
@@ -128,8 +126,6 @@
 - key: kubernetes
   title: Kubernetes
   description: >
-    beta[]
-
     Kubernetes metadata added by the kubernetes processor
   short_config: false
   anchor: kubernetes-processor
@@ -146,6 +142,11 @@
           type: keyword
           description: >
             Kubernetes namespace
+
+        - name: node.name
+          type: keyword
+          description: >
+            Kubernetes node name
 
         - name: labels
           type: object

@@ -11,7 +11,7 @@ openconfigbeat:
   paths: ["/"]
 
   # The default port to connect to if none is configured.
-  default_port: 6042
+  default_port: 6030
 
   # The username on the device.
   #username: "admin"
