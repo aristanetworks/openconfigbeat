@@ -49,59 +49,35 @@ func Base(path Path) key.Key {
 	return nil
 }
 
-func copyElements(path Path, elements ...interface{}) {
-	for i, element := range elements {
-		switch val := element.(type) {
-		case key.Key:
-			path[i] = val
-		default:
-			path[i] = key.New(val)
-		}
-	}
+// Clone constructs a copy of a Path.
+func Clone(path Path) Path {
+	p := make(Path, len(path))
+	copy(p, path)
+	return p
 }
 
-// String returns the Path as a string.
-func (p Path) String() string {
-	if len(p) == 0 {
-		return "/"
-	}
-	var buf bytes.Buffer
-	for _, element := range p {
-		buf.WriteByte('/')
-		buf.WriteString(element.String())
-	}
-	return buf.String()
+// Equal returns whether the Path a is the same as Path b.
+func Equal(a, b Path) bool {
+	return len(a) == len(b) && hasPrefix(a, b)
 }
 
-// Equal returns whether the Path contains the same elements
-// as the other Path. This method implements key.Comparable.
-func (p Path) Equal(other interface{}) bool {
-	o, ok := other.(Path)
-	if !ok {
-		return false
-	}
-	if len(o) != len(p) {
-		return false
-	}
-	return o.hasPrefix(p)
+// HasPrefix returns whether the Path b is a prefix of Path a.
+func HasPrefix(a, b Path) bool {
+	return len(a) >= len(b) && hasPrefix(a, b)
 }
 
-// HasPrefix returns whether the Path is prefixed by the
-// other Path.
-func (p Path) HasPrefix(prefix Path) bool {
-	if len(prefix) > len(p) {
-		return false
-	}
-	return p.hasPrefix(prefix)
+// Match returns whether the Path a and Path b are the same
+// length and whether each element in b corresponds to the
+// same element or a wildcard in a.
+func Match(a, b Path) bool {
+	return len(a) == len(b) && matchPrefix(a, b)
 }
 
-func (p Path) hasPrefix(prefix Path) bool {
-	for i := range prefix {
-		if !prefix[i].Equal(p[i]) {
-			return false
-		}
-	}
-	return true
+// MatchPrefix returns whether the Path a is longer than
+// Path b and whether each element in b corresponds to the
+// same element or a wildcard in a.
+func MatchPrefix(a, b Path) bool {
+	return len(a) >= len(b) && matchPrefix(a, b)
 }
 
 // FromString constructs a Path from the elements resulting
@@ -119,4 +95,46 @@ func FromString(str string) Path {
 		path[i] = key.New(element)
 	}
 	return path
+}
+
+// String returns the Path as a string.
+func (p Path) String() string {
+	if len(p) == 0 {
+		return "/"
+	}
+	var buf bytes.Buffer
+	for _, element := range p {
+		buf.WriteByte('/')
+		buf.WriteString(element.String())
+	}
+	return buf.String()
+}
+
+func copyElements(path Path, elements ...interface{}) {
+	for i, element := range elements {
+		switch val := element.(type) {
+		case key.Key:
+			path[i] = val
+		default:
+			path[i] = key.New(val)
+		}
+	}
+}
+
+func hasPrefix(a, b Path) bool {
+	for i := range b {
+		if !b[i].Equal(a[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func matchPrefix(a, b Path) bool {
+	for i := range b {
+		if !a[i].Equal(Wildcard) && !b[i].Equal(a[i]) {
+			return false
+		}
+	}
+	return true
 }

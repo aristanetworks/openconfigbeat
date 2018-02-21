@@ -8,6 +8,8 @@ include::{asciidoc-dir}/../../shared/attributes.asciidoc[]
 :beatname_lc: auditbeat
 :beatname_uc: Auditbeat
 :beatname_pkg: {beatname_lc}
+:github_repo_name: beats
+:discuss_forum: beats/{beatname_lc}
 
 include::../../libbeat/docs/shared-beats-attributes.asciidoc[]
 
@@ -28,6 +30,8 @@ include::./configuring-howto.asciidoc[]
 include::./modules.asciidoc[]
 
 include::./fields.asciidoc[]
+
+include::../../libbeat/docs/monitoring/monitoring-beats.asciidoc[]
 
 include::./securing-auditbeat.asciidoc[]
 

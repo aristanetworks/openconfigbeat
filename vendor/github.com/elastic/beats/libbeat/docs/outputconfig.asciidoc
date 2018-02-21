@@ -432,6 +432,14 @@ load balances published events onto all Logstash hosts. If set to false,
 the output plugin sends all events to only one host (determined at random) and
 will switch to another host if the selected one becomes unresponsive. The default value is false.
 
+["source","yaml",subs="attributes"]
+------------------------------------------------------------------------------
+output.logstash:
+  hosts: ["localhost:5044", "localhost:5045"]
+  loadbalance: true
+  index: {beatname_lc}
+------------------------------------------------------------------------------
+
 ===== `ttl`
 
 Time to live for a connection to Logstash after which the connection will be re-established.
@@ -444,20 +452,12 @@ The default value is 0.
 
 NOTE: The "ttl" option is not yet supported on an async Logstash client (one with the "pipelining" option set).
 
-["source","yaml",subs="attributes"]
-------------------------------------------------------------------------------
-output.logstash:
-  hosts: ["localhost:5044", "localhost:5045"]
-  loadbalance: true
-  index: {beatname_lc}
-------------------------------------------------------------------------------
-
 ===== `pipelining`
 
 Configures number of batches to be sent asynchronously to logstash while waiting
 for ACK from logstash. Output only becomes blocking once number of `pipelining`
 batches have been written. Pipelining is disabled if a values of 0 is
-configured. The default value is 5.
+configured. The default value is 2.
 
 [[port]]
 ===== `port`

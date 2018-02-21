@@ -1,23 +1,23 @@
 hash: 3fc8bac19692ded1e0fb20d0054386e787912acab3e0693134c0da3901f937d1
-updated: 2018-01-30T10:29:14.870427-08:00
+updated: 2018-02-21T17:43:11.614448188Z
 imports:
 - name: github.com/aristanetworks/goarista
-  version: 427aa1e96d9056ff23cb68e3e1ef49c1c3e190b0
+  version: 1407612bacdb9230af4463aa6e2e226c1a102670
   subpackages:
   - elasticsearch
   - gnmi
   - openconfig
 - name: github.com/davecgh/go-spew
-  version: db69d09d2c587e9b9677f991dfcab1fc24d9086e
+  version: 87df7c60d5820d0f8ae11afede5aa52325c09717
   subpackages:
   - spew
 - name: github.com/docker/distribution
-  version: 5cb406d511b7b9163bff9b6439072e4892e5ae3b
+  version: 6664ec703991875e14419ff4960921cce7678bab
   subpackages:
   - digestset
   - reference
 - name: github.com/docker/docker
-  version: 40a9d5d24cda0d938f3c41dceef41b97b6b4e847
+  version: 0ede01237c9ab871f1b8db0364427407f3e46541
   subpackages:
   - api
   - api/types
@@ -37,13 +37,13 @@ imports:
   - api/types/volume
   - client
 - name: github.com/docker/go-connections
-  version: 3ede32e2033de7505e6500d6c868c2b9ed9f169d
+  version: 7beb39f0b969b075d1325fecb092faf27fd357b6
   subpackages:
   - nat
   - sockets
   - tlsconfig
 - name: github.com/docker/go-units
-  version: d59758554a3d3911fa25c0269de1ebe2f1912c39
+  version: 47565b4f722fb6ceae66b95f853feed578a4a51c
 - name: github.com/eapache/go-resiliency
   version: ef9aaa7ea8bd2448429af1a77cf41b2b3b34bdd6
   subpackages:
@@ -53,7 +53,7 @@ imports:
 - name: github.com/eapache/queue
   version: 44cc805cf13205b55f69e14bcb69867d1ae92f98
 - name: github.com/elastic/beats
-  version: 847b6acb157997e4eca3c9aae7adfc36d89ad2ff
+  version: baa740ddb5c47fbb61e7bc852eca46d4aa74da56
   subpackages:
   - libbeat/api
   - libbeat/autodiscover
@@ -132,7 +132,7 @@ imports:
   - client/v2
   - protocol/v2
 - name: github.com/elastic/go-ucfg
-  version: bda09c7b9afc6263a3fd592fcd7063d03f6acf0f
+  version: 0ba28e36add27704e6b49a7ed8557989a8f4a635
   subpackages:
   - cfgutil
   - flag
@@ -157,7 +157,7 @@ imports:
   - util/intstr
   - watch/versioned
 - name: github.com/fatih/color
-  version: 5df930a27be2502f99b292b7cc09ebad4d0891f4
+  version: 507f6050b8568533fb3f5504de8e5205fa62a114
 - name: github.com/garyburd/redigo
   version: d1ed5c67e5794de818ea85e6b522fda02623a484
   subpackages:
@@ -166,15 +166,15 @@ imports:
 - name: github.com/ghodss/yaml
   version: 0ca9ea5df5451ffdf184b4428c902747c2c11cd7
 - name: github.com/go-ole/go-ole
-  version: a41e3c4b706f6ae8dfbff342b06e40fa4d2d0506
+  version: a1ec82a652ebc7e784d7df887cfb31061aeabbcc
   subpackages:
   - oleutil
 - name: github.com/gogo/protobuf
-  version: 26de2f9a7d3b1826f275e7a97c8cad5080589426
+  version: b75782e777cfa7ca469bc46cc313ddd26e6e9d1c
   subpackages:
   - proto
 - name: github.com/golang/protobuf
-  version: 925541529c1fa6821df4e44ce2723319eb2be768
+  version: bbd03ef6da3a115852eaf24c8a1c46aeb39aa175
   subpackages:
   - proto
   - protoc-gen-go/descriptor
@@ -189,33 +189,33 @@ imports:
 - name: github.com/joeshaw/multierror
   version: 69b34d4ec901851247ae7e77d33909caf9df99ed
 - name: github.com/klauspost/compress
-  version: b88785bfd699aa994985ea91b90ee8a1721c3fe1
+  version: 8a8c9b92f99fe49f9c13688b0ee2824bb586c972
   subpackages:
   - flate
   - zlib
 - name: github.com/klauspost/cpuid
   version: ae832f27941af41db13bd6d8efd2493e3b22415a
 - name: github.com/mattn/go-colorable
-  version: 5411d3eea5978e6cdc258b30de592b60df6aba96
+  version: 7dc3415be66d7cc68bf0182f35c8d31f8d2ad8a7
 - name: github.com/mattn/go-isatty
-  version: 57fdcb988a5c543893cc61bce354a6e24ab70022
-  repo: https://github.com/mattn/go-isatty
+  version: 6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c
 - name: github.com/Microsoft/go-winio
   version: 7da180ee92d8bd8bb8c37fc560e673e6557c392f
 - name: github.com/mitchellh/hashstructure
   version: 2bca23e0e452137f789efbc8610126fd8b94f73b
 - name: github.com/openconfig/gnmi
-  version: 9c8d9e965b3e854107ea02c12ab11b70717456f2
+  version: a0e319ea17b69501b2b287db91149ed93e5e3ebc
   subpackages:
   - proto/gnmi
+  - proto/gnmi_ext
 - name: github.com/openconfig/reference
-  version: 01d756d1d7dcb43706e76df359300a033e8a2721
+  version: 3fd4765f55009423c49d5854dd12c5c686ca10d3
   subpackages:
   - rpc/openconfig
 - name: github.com/opencontainers/go-digest
   version: 279bed98673dd5bef374d3b6e4b09e2af76183bf
 - name: github.com/opencontainers/image-spec
-  version: 577479e4dc273d3779f00c223c7e0dba4cd6b8b0
+  version: 149252121d044fddff670adcdc67f33148e16226
   subpackages:
   - specs-go
   - specs-go/v1
@@ -234,15 +234,15 @@ imports:
 - name: github.com/satori/go.uuid
   version: 36e9d2ebbde5e3f13ab2e25625fd453271d6522e
 - name: github.com/Shopify/sarama
-  version: 0f4f8caef994ca7e4f9072c1858b7c6761ed498f
+  version: 3d1fae12e48b5ef9b6a06a32c2451268345a0d00
 - name: github.com/spf13/cobra
-  version: f91529fc609202eededff4de2dc0ba2f662240a3
+  version: 1a618fb24b01a0f393ccd82d55c4d8058bdeaf5c
 - name: github.com/spf13/pflag
-  version: 4c012f6dcd9546820e378d0bdda4d8fc772cdfea
+  version: ee5fd03fd6acfd43e44aea0b4135958546ed8e73
 - name: github.com/StackExchange/wmi
   version: 5d049714c4a64225c3c79a7cf7d02f7fb5b96338
 - name: github.com/stretchr/testify
-  version: b91bfb9ebec76498946beb6af7c0230c7cc7ba6c
+  version: be8372ae8ec5c6daaed3cc28ebf73c54b737c240
 - name: github.com/urso/go-structform
   version: 035638634d48c28a09bb7aa00ef78f4ffb83fa34
   subpackages:
@@ -264,12 +264,12 @@ imports:
   - zapcore
   - zaptest/observer
 - name: golang.org/x/crypto
-  version: 1875d0a70c90e57f11972aefd42276df65e895b9
+  version: 432090b8f568c018896cd8a0fb0345872bbac6ce
   subpackages:
   - pbkdf2
   - ssh/terminal
 - name: golang.org/x/net
-  version: 0ed95abb35c445290478a5348a7b38bb154135fd
+  version: cbe0f9307d0156177f9dd5dc85da1a31abc5f2fb
   subpackages:
   - context
   - context/ctxhttp
@@ -281,7 +281,7 @@ imports:
   - proxy
   - trace
 - name: golang.org/x/sys
-  version: e24f485414aeafb646f6fca458b0bf869c0880a1
+  version: 37707fdb30a5b38865cfb95e5aab41707daec7fd
   subpackages:
   - unix
   - windows
@@ -290,18 +290,18 @@ imports:
   - windows/svc/debug
   - windows/svc/eventlog
 - name: golang.org/x/text
-  version: e19ae1496984b1c655b8044a65c0300a3c878dd3
+  version: 9e2b64d659da1afe07ce1c9c1dfefc09d188f21e
   subpackages:
   - secure/bidirule
   - transform
   - unicode/bidi
   - unicode/norm
 - name: google.golang.org/genproto
-  version: 4eb30f4778eed4c258ba66527a0d4f9ec8a36c45
+  version: 2b5a72b8730b0b16380010cfe5286c42108d88e7
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: 0bd008f5fadb62d228f12b18d016709e8139a7af
+  version: dfa18343df54bda471a4b53677aa7c0d0df882d1
   subpackages:
   - balancer
   - balancer/base

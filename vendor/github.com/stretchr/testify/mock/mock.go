@@ -42,6 +42,9 @@ type Call struct {
 	// this method is called.
 	ReturnArguments Arguments
 
+	// Holds the caller info for the On() call
+	callerInfo []string
+
 	// The number of times to return the return arguments when setting
 	// expectations. 0 means to always return the value.
 	Repeatability int
@@ -64,12 +67,13 @@ type Call struct {
 	RunFn func(Arguments)
 }
 
-func newCall(parent *Mock, methodName string, methodArguments ...interface{}) *Call {
+func newCall(parent *Mock, methodName string, callerInfo []string, methodArguments ...interface{}) *Call {
 	return &Call{
 		Parent:          parent,
 		Method:          methodName,
 		Arguments:       methodArguments,
 		ReturnArguments: make([]interface{}, 0),
+		callerInfo:      callerInfo,
 		Repeatability:   0,
 		WaitFor:         nil,
 		RunFn:           nil,
@@ -222,7 +226,7 @@ func (m *Mock) On(methodName string, arguments ...interface{}) *Call {
 
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	c := newCall(m, methodName, arguments...)
+	c := newCall(m, methodName, assert.CallerInfo(), arguments...)
 	m.ExpectedCalls = append(m.ExpectedCalls, c)
 	return c
 }
@@ -340,7 +344,7 @@ func (m *Mock) MethodCalled(methodName string, arguments ...interface{}) Argumen
 	call.totalCalls++
 
 	// add the call
-	m.Calls = append(m.Calls, *newCall(m, methodName, arguments...))
+	m.Calls = append(m.Calls, *newCall(m, methodName, assert.CallerInfo(), arguments...))
 	m.mutex.Unlock()
 
 	// block if specified
@@ -385,6 +389,7 @@ func AssertExpectationsForObjects(t TestingT, testObjects ...interface{}) bool {
 		}
 		m := obj.(assertExpectationser)
 		if !m.AssertExpectations(t) {
+			t.Logf("Expectations didn't match for Mock: %+v", reflect.TypeOf(m))
 			return false
 		}
 	}
@@ -405,13 +410,14 @@ func (m *Mock) AssertExpectations(t TestingT) bool {
 		if !expectedCall.optional && !m.methodWasCalled(expectedCall.Method, expectedCall.Arguments) && expectedCall.totalCalls == 0 {
 			somethingMissing = true
 			failedExpectations++
-			t.Logf("\u274C\t%s(%s)", expectedCall.Method, expectedCall.Arguments.String())
+			t.Logf("FAIL:\t%s(%s)\n\t\tat: %s", expectedCall.Method, expectedCall.Arguments.String(), expectedCall.callerInfo)
 		} else {
 			if expectedCall.Repeatability > 0 {
 				somethingMissing = true
 				failedExpectations++
+				t.Logf("FAIL:\t%s(%s)\n\t\tat: %s", expectedCall.Method, expectedCall.Arguments.String(), expectedCall.callerInfo)
 			} else {
-				t.Logf("\u2705\t%s(%s)", expectedCall.Method, expectedCall.Arguments.String())
+				t.Logf("PASS:\t%s(%s)", expectedCall.Method, expectedCall.Arguments.String())
 			}
 		}
 	}
@@ -624,10 +630,10 @@ func (args Arguments) Diff(objects []interface{}) (string, int) {
 
 		if matcher, ok := expected.(argumentMatcher); ok {
 			if matcher.Matches(actual) {
-				output = fmt.Sprintf("%s\t%d: \u2705  %s matched by %s\n", output, i, actual, matcher)
+				output = fmt.Sprintf("%s\t%d: PASS:  %s matched by %s\n", output, i, actual, matcher)
 			} else {
 				differences++
-				output = fmt.Sprintf("%s\t%d: \u2705  %s not matched by %s\n", output, i, actual, matcher)
+				output = fmt.Sprintf("%s\t%d: PASS:  %s not matched by %s\n", output, i, actual, matcher)
 			}
 		} else if reflect.TypeOf(expected) == reflect.TypeOf((*AnythingOfTypeArgument)(nil)).Elem() {
 
@@ -635,7 +641,7 @@ func (args Arguments) Diff(objects []interface{}) (string, int) {
 			if reflect.TypeOf(actual).Name() != string(expected.(AnythingOfTypeArgument)) && reflect.TypeOf(actual).String() != string(expected.(AnythingOfTypeArgument)) {
 				// not match
 				differences++
-				output = fmt.Sprintf("%s\t%d: \u274C  type %s != type %s - %s\n", output, i, expected, reflect.TypeOf(actual).Name(), actual)
+				output = fmt.Sprintf("%s\t%d: FAIL:  type %s != type %s - %s\n", output, i, expected, reflect.TypeOf(actual).Name(), actual)
 			}
 
 		} else {
@@ -644,11 +650,11 @@ func (args Arguments) Diff(objects []interface{}) (string, int) {
 
 			if assert.ObjectsAreEqual(expected, Anything) || assert.ObjectsAreEqual(actual, Anything) || assert.ObjectsAreEqual(actual, expected) {
 				// match
-				output = fmt.Sprintf("%s\t%d: \u2705  %s == %s\n", output, i, actual, expected)
+				output = fmt.Sprintf("%s\t%d: PASS:  %s == %s\n", output, i, actual, expected)
 			} else {
 				// not match
 				differences++
-				output = fmt.Sprintf("%s\t%d: \u274C  %s != %s\n", output, i, actual, expected)
+				output = fmt.Sprintf("%s\t%d: FAIL:  %s != %s\n", output, i, actual, expected)
 			}
 		}
 
