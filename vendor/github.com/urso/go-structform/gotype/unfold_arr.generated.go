@@ -2012,72 +2012,106 @@ func unfoldIfcFinishSubArray(ctx *unfoldCtx) (interface{}, error) {
 	switch bt {
 
 	case structform.AnyType:
-		ctx.buf.release()
-		return *(*[]interface{})(child), nil
+		value := *(*[]interface{})(child)
+		last := len(ctx.valueBuffer.arrays) - 1
+		ctx.valueBuffer.arrays = ctx.valueBuffer.arrays[:last]
+		return value, nil
 
 	case structform.BoolType:
-		ctx.buf.release()
-		return *(*[]bool)(child), nil
+		value := *(*[]bool)(child)
+		last := len(ctx.valueBuffer.arrays) - 1
+		ctx.valueBuffer.arrays = ctx.valueBuffer.arrays[:last]
+		return value, nil
 
 	case structform.ByteType:
-		ctx.buf.release()
-		return *(*[]uint8)(child), nil
+		value := *(*[]uint8)(child)
+		last := len(ctx.valueBuffer.arrays) - 1
+		ctx.valueBuffer.arrays = ctx.valueBuffer.arrays[:last]
+		return value, nil
 
 	case structform.Float32Type:
-		ctx.buf.release()
-		return *(*[]float32)(child), nil
+		value := *(*[]float32)(child)
+		last := len(ctx.valueBuffer.arrays) - 1
+		ctx.valueBuffer.arrays = ctx.valueBuffer.arrays[:last]
+		return value, nil
 
 	case structform.Float64Type:
-		ctx.buf.release()
-		return *(*[]float64)(child), nil
+		value := *(*[]float64)(child)
+		last := len(ctx.valueBuffer.arrays) - 1
+		ctx.valueBuffer.arrays = ctx.valueBuffer.arrays[:last]
+		return value, nil
 
 	case structform.Int16Type:
-		ctx.buf.release()
-		return *(*[]int16)(child), nil
+		value := *(*[]int16)(child)
+		last := len(ctx.valueBuffer.arrays) - 1
+		ctx.valueBuffer.arrays = ctx.valueBuffer.arrays[:last]
+		return value, nil
 
 	case structform.Int32Type:
-		ctx.buf.release()
-		return *(*[]int32)(child), nil
+		value := *(*[]int32)(child)
+		last := len(ctx.valueBuffer.arrays) - 1
+		ctx.valueBuffer.arrays = ctx.valueBuffer.arrays[:last]
+		return value, nil
 
 	case structform.Int64Type:
-		ctx.buf.release()
-		return *(*[]int64)(child), nil
+		value := *(*[]int64)(child)
+		last := len(ctx.valueBuffer.arrays) - 1
+		ctx.valueBuffer.arrays = ctx.valueBuffer.arrays[:last]
+		return value, nil
 
 	case structform.Int8Type:
-		ctx.buf.release()
-		return *(*[]int8)(child), nil
+		value := *(*[]int8)(child)
+		last := len(ctx.valueBuffer.arrays) - 1
+		ctx.valueBuffer.arrays = ctx.valueBuffer.arrays[:last]
+		return value, nil
 
 	case structform.IntType:
-		ctx.buf.release()
-		return *(*[]int)(child), nil
+		value := *(*[]int)(child)
+		last := len(ctx.valueBuffer.arrays) - 1
+		ctx.valueBuffer.arrays = ctx.valueBuffer.arrays[:last]
+		return value, nil
 
 	case structform.StringType:
-		ctx.buf.release()
-		return *(*[]string)(child), nil
+		value := *(*[]string)(child)
+		last := len(ctx.valueBuffer.arrays) - 1
+		ctx.valueBuffer.arrays = ctx.valueBuffer.arrays[:last]
+		return value, nil
 
 	case structform.Uint16Type:
-		ctx.buf.release()
-		return *(*[]uint16)(child), nil
+		value := *(*[]uint16)(child)
+		last := len(ctx.valueBuffer.arrays) - 1
+		ctx.valueBuffer.arrays = ctx.valueBuffer.arrays[:last]
+		return value, nil
 
 	case structform.Uint32Type:
-		ctx.buf.release()
-		return *(*[]uint32)(child), nil
+		value := *(*[]uint32)(child)
+		last := len(ctx.valueBuffer.arrays) - 1
+		ctx.valueBuffer.arrays = ctx.valueBuffer.arrays[:last]
+		return value, nil
 
 	case structform.Uint64Type:
-		ctx.buf.release()
-		return *(*[]uint64)(child), nil
+		value := *(*[]uint64)(child)
+		last := len(ctx.valueBuffer.arrays) - 1
+		ctx.valueBuffer.arrays = ctx.valueBuffer.arrays[:last]
+		return value, nil
 
 	case structform.Uint8Type:
-		ctx.buf.release()
-		return *(*[]uint8)(child), nil
+		value := *(*[]uint8)(child)
+		last := len(ctx.valueBuffer.arrays) - 1
+		ctx.valueBuffer.arrays = ctx.valueBuffer.arrays[:last]
+		return value, nil
 
 	case structform.UintType:
-		ctx.buf.release()
-		return *(*[]uint)(child), nil
+		value := *(*[]uint)(child)
+		last := len(ctx.valueBuffer.arrays) - 1
+		ctx.valueBuffer.arrays = ctx.valueBuffer.arrays[:last]
+		return value, nil
 
 	case structform.ZeroType:
-		ctx.buf.release()
-		return *(*[]interface{})(child), nil
+		value := *(*[]interface{})(child)
+		last := len(ctx.valueBuffer.arrays) - 1
+		ctx.valueBuffer.arrays = ctx.valueBuffer.arrays[:last]
+		return value, nil
 
 	default:
 		return nil, errTODO()
@@ -2088,222 +2122,171 @@ func makeArrayPtr(ctx *unfoldCtx, l int, bt structform.BaseType) (interface{}, u
 	switch bt {
 
 	case structform.AnyType:
-		sz := unsafe.Sizeof([]interface{}{})
-		ptr := ctx.buf.alloc(int(sz))
+		idx := len(ctx.valueBuffer.arrays)
+		ctx.valueBuffer.arrays = append(ctx.valueBuffer.arrays, nil)
+		arrPtr := &ctx.valueBuffer.arrays[idx]
+		ptr := unsafe.Pointer(arrPtr)
 		to := (*[]interface{})(ptr)
-
-		if l > 0 {
-			*to = make([]interface{}, l)
-		}
-
 		unfolder := newUnfolderArrIfc()
 
 		return to, ptr, unfolder
 
 	case structform.BoolType:
-		sz := unsafe.Sizeof([]bool{})
-		ptr := ctx.buf.alloc(int(sz))
+		idx := len(ctx.valueBuffer.arrays)
+		ctx.valueBuffer.arrays = append(ctx.valueBuffer.arrays, nil)
+		arrPtr := &ctx.valueBuffer.arrays[idx]
+		ptr := unsafe.Pointer(arrPtr)
 		to := (*[]bool)(ptr)
-
-		if l > 0 {
-			*to = make([]bool, l)
-		}
-
 		unfolder := newUnfolderArrBool()
 
 		return to, ptr, unfolder
 
 	case structform.ByteType:
-		sz := unsafe.Sizeof([]uint8{})
-		ptr := ctx.buf.alloc(int(sz))
+		idx := len(ctx.valueBuffer.arrays)
+		ctx.valueBuffer.arrays = append(ctx.valueBuffer.arrays, nil)
+		arrPtr := &ctx.valueBuffer.arrays[idx]
+		ptr := unsafe.Pointer(arrPtr)
 		to := (*[]uint8)(ptr)
-
-		if l > 0 {
-			*to = make([]uint8, l)
-		}
-
 		unfolder := newUnfolderArrUint8()
 
 		return to, ptr, unfolder
 
 	case structform.Float32Type:
-		sz := unsafe.Sizeof([]float32{})
-		ptr := ctx.buf.alloc(int(sz))
+		idx := len(ctx.valueBuffer.arrays)
+		ctx.valueBuffer.arrays = append(ctx.valueBuffer.arrays, nil)
+		arrPtr := &ctx.valueBuffer.arrays[idx]
+		ptr := unsafe.Pointer(arrPtr)
 		to := (*[]float32)(ptr)
-
-		if l > 0 {
-			*to = make([]float32, l)
-		}
-
 		unfolder := newUnfolderArrFloat32()
 
 		return to, ptr, unfolder
 
 	case structform.Float64Type:
-		sz := unsafe.Sizeof([]float64{})
-		ptr := ctx.buf.alloc(int(sz))
+		idx := len(ctx.valueBuffer.arrays)
+		ctx.valueBuffer.arrays = append(ctx.valueBuffer.arrays, nil)
+		arrPtr := &ctx.valueBuffer.arrays[idx]
+		ptr := unsafe.Pointer(arrPtr)
 		to := (*[]float64)(ptr)
-
-		if l > 0 {
-			*to = make([]float64, l)
-		}
-
 		unfolder := newUnfolderArrFloat64()
 
 		return to, ptr, unfolder
 
 	case structform.Int16Type:
-		sz := unsafe.Sizeof([]int16{})
-		ptr := ctx.buf.alloc(int(sz))
+		idx := len(ctx.valueBuffer.arrays)
+		ctx.valueBuffer.arrays = append(ctx.valueBuffer.arrays, nil)
+		arrPtr := &ctx.valueBuffer.arrays[idx]
+		ptr := unsafe.Pointer(arrPtr)
 		to := (*[]int16)(ptr)
-
-		if l > 0 {
-			*to = make([]int16, l)
-		}
-
 		unfolder := newUnfolderArrInt16()
 
 		return to, ptr, unfolder
 
 	case structform.Int32Type:
-		sz := unsafe.Sizeof([]int32{})
-		ptr := ctx.buf.alloc(int(sz))
+		idx := len(ctx.valueBuffer.arrays)
+		ctx.valueBuffer.arrays = append(ctx.valueBuffer.arrays, nil)
+		arrPtr := &ctx.valueBuffer.arrays[idx]
+		ptr := unsafe.Pointer(arrPtr)
 		to := (*[]int32)(ptr)
-
-		if l > 0 {
-			*to = make([]int32, l)
-		}
-
 		unfolder := newUnfolderArrInt32()
 
 		return to, ptr, unfolder
 
 	case structform.Int64Type:
-		sz := unsafe.Sizeof([]int64{})
-		ptr := ctx.buf.alloc(int(sz))
+		idx := len(ctx.valueBuffer.arrays)
+		ctx.valueBuffer.arrays = append(ctx.valueBuffer.arrays, nil)
+		arrPtr := &ctx.valueBuffer.arrays[idx]
+		ptr := unsafe.Pointer(arrPtr)
 		to := (*[]int64)(ptr)
-
-		if l > 0 {
-			*to = make([]int64, l)
-		}
-
 		unfolder := newUnfolderArrInt64()
 
 		return to, ptr, unfolder
 
 	case structform.Int8Type:
-		sz := unsafe.Sizeof([]int8{})
-		ptr := ctx.buf.alloc(int(sz))
+		idx := len(ctx.valueBuffer.arrays)
+		ctx.valueBuffer.arrays = append(ctx.valueBuffer.arrays, nil)
+		arrPtr := &ctx.valueBuffer.arrays[idx]
+		ptr := unsafe.Pointer(arrPtr)
 		to := (*[]int8)(ptr)
-
-		if l > 0 {
-			*to = make([]int8, l)
-		}
-
 		unfolder := newUnfolderArrInt8()
 
 		return to, ptr, unfolder
 
 	case structform.IntType:
-		sz := unsafe.Sizeof([]int{})
-		ptr := ctx.buf.alloc(int(sz))
+		idx := len(ctx.valueBuffer.arrays)
+		ctx.valueBuffer.arrays = append(ctx.valueBuffer.arrays, nil)
+		arrPtr := &ctx.valueBuffer.arrays[idx]
+		ptr := unsafe.Pointer(arrPtr)
 		to := (*[]int)(ptr)
-
-		if l > 0 {
-			*to = make([]int, l)
-		}
-
 		unfolder := newUnfolderArrInt()
 
 		return to, ptr, unfolder
 
 	case structform.StringType:
-		sz := unsafe.Sizeof([]string{})
-		ptr := ctx.buf.alloc(int(sz))
+		idx := len(ctx.valueBuffer.arrays)
+		ctx.valueBuffer.arrays = append(ctx.valueBuffer.arrays, nil)
+		arrPtr := &ctx.valueBuffer.arrays[idx]
+		ptr := unsafe.Pointer(arrPtr)
 		to := (*[]string)(ptr)
-
-		if l > 0 {
-			*to = make([]string, l)
-		}
-
 		unfolder := newUnfolderArrString()
 
 		return to, ptr, unfolder
 
 	case structform.Uint16Type:
-		sz := unsafe.Sizeof([]uint16{})
-		ptr := ctx.buf.alloc(int(sz))
+		idx := len(ctx.valueBuffer.arrays)
+		ctx.valueBuffer.arrays = append(ctx.valueBuffer.arrays, nil)
+		arrPtr := &ctx.valueBuffer.arrays[idx]
+		ptr := unsafe.Pointer(arrPtr)
 		to := (*[]uint16)(ptr)
-
-		if l > 0 {
-			*to = make([]uint16, l)
-		}
-
 		unfolder := newUnfolderArrUint16()
 
 		return to, ptr, unfolder
 
 	case structform.Uint32Type:
-		sz := unsafe.Sizeof([]uint32{})
-		ptr := ctx.buf.alloc(int(sz))
+		idx := len(ctx.valueBuffer.arrays)
+		ctx.valueBuffer.arrays = append(ctx.valueBuffer.arrays, nil)
+		arrPtr := &ctx.valueBuffer.arrays[idx]
+		ptr := unsafe.Pointer(arrPtr)
 		to := (*[]uint32)(ptr)
-
-		if l > 0 {
-			*to = make([]uint32, l)
-		}
-
 		unfolder := newUnfolderArrUint32()
 
 		return to, ptr, unfolder
 
 	case structform.Uint64Type:
-		sz := unsafe.Sizeof([]uint64{})
-		ptr := ctx.buf.alloc(int(sz))
+		idx := len(ctx.valueBuffer.arrays)
+		ctx.valueBuffer.arrays = append(ctx.valueBuffer.arrays, nil)
+		arrPtr := &ctx.valueBuffer.arrays[idx]
+		ptr := unsafe.Pointer(arrPtr)
 		to := (*[]uint64)(ptr)
-
-		if l > 0 {
-			*to = make([]uint64, l)
-		}
-
 		unfolder := newUnfolderArrUint64()
 
 		return to, ptr, unfolder
 
 	case structform.Uint8Type:
-		sz := unsafe.Sizeof([]uint8{})
-		ptr := ctx.buf.alloc(int(sz))
+		idx := len(ctx.valueBuffer.arrays)
+		ctx.valueBuffer.arrays = append(ctx.valueBuffer.arrays, nil)
+		arrPtr := &ctx.valueBuffer.arrays[idx]
+		ptr := unsafe.Pointer(arrPtr)
 		to := (*[]uint8)(ptr)
-
-		if l > 0 {
-			*to = make([]uint8, l)
-		}
-
 		unfolder := newUnfolderArrUint8()
 
 		return to, ptr, unfolder
 
 	case structform.UintType:
-		sz := unsafe.Sizeof([]uint{})
-		ptr := ctx.buf.alloc(int(sz))
+		idx := len(ctx.valueBuffer.arrays)
+		ctx.valueBuffer.arrays = append(ctx.valueBuffer.arrays, nil)
+		arrPtr := &ctx.valueBuffer.arrays[idx]
+		ptr := unsafe.Pointer(arrPtr)
 		to := (*[]uint)(ptr)
-
-		if l > 0 {
-			*to = make([]uint, l)
-		}
-
 		unfolder := newUnfolderArrUint()
 
 		return to, ptr, unfolder
 
 	case structform.ZeroType:
-		sz := unsafe.Sizeof([]interface{}{})
-		ptr := ctx.buf.alloc(int(sz))
+		idx := len(ctx.valueBuffer.arrays)
+		ctx.valueBuffer.arrays = append(ctx.valueBuffer.arrays, nil)
+		arrPtr := &ctx.valueBuffer.arrays[idx]
+		ptr := unsafe.Pointer(arrPtr)
 		to := (*[]interface{})(ptr)
-
-		if l > 0 {
-			*to = make([]interface{}, l)
-		}
-
 		unfolder := newUnfolderArrIfc()
 
 		return to, ptr, unfolder

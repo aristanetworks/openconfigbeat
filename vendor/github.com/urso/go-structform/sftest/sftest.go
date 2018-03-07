@@ -277,29 +277,31 @@ func TestEncodeParseConsistent(
 	constr func() (structform.Visitor, func(structform.Visitor) error),
 ) {
 	for i, sample := range samples {
+		sample := sample
 		expected, err := sample.ToJSON()
 		if err != nil {
 			panic(err)
 		}
 
-		t.Logf("test %v: %#v => %v", i, sample, expected)
+		title := fmt.Sprintf("test %v: %#v => %v", i, sample, expected)
+		t.Run(title, func(t *testing.T) {
+			enc, dec := constr()
 
-		enc, dec := constr()
+			err = sample.Replay(enc)
+			if err != nil {
+				t.Errorf("Failed to encode %#v with %v", sample, err)
+				return
+			}
 
-		err = sample.Replay(enc)
-		if err != nil {
-			t.Errorf("Failed to encode %#v with %v", sample, err)
-			return
-		}
+			var target Recording
+			err = dec(&target)
+			if err != nil {
+				t.Errorf("Failed to decode %#v with %v", target, err)
+				t.Logf("  recording: %#v", target)
+			}
 
-		var target Recording
-		err = dec(&target)
-		if err != nil {
-			t.Errorf("Failed to decode %#v with %v", target, err)
-			t.Logf("  recording: %#v", target)
-		}
-
-		target.Assert(t, sample)
+			target.Assert(t, sample)
+		})
 	}
 }
 

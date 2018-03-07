@@ -1,3 +1,4 @@
+ELASTICSEARCH_VERSION = 6.2.2
 BEAT_NAME=openconfigbeat
 BEAT_DIR=github.com/aristanetworks
 BEAT_PATH=$(BEAT_DIR)/$(BEAT_NAME)
@@ -8,7 +9,6 @@ GOPACKAGES=$(shell glide novendor)
 GOIMPORTS_LOCAL_PREFIX=github.com/aristanetworks
 PREFIX ?= .
 DOCKER = docker
-ELASTICSEARCH_VERSION = 6.2.2
 ELASTICSEARCH_HOST ?= 127.0.0.1
 DOCKER_IMAGE = docker.elastic.co/elasticsearch/elasticsearch:$(ELASTICSEARCH_VERSION)
 DOCKER_CONTAINER = openconfigbeat-elasticsearch

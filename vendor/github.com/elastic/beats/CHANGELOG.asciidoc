@@ -1,4 +1,3 @@
-
 // Use these for links to issue and pulls. Note issues and pulls redirect one to
 // each other on Github, so don't worry too much on using the right prefix.
 :issue: https://github.com/elastic/beats/issues/
@@ -49,6 +48,8 @@ https://github.com/elastic/beats/compare/v6.0.0-beta2...master[Check the HEAD di
 - Add IIS module to parse access log and error log. {pull}6127[6127]
 
 *Heartbeat*
+
+- Made the url field of heartbeat aggregatable. {pull}6263[6263]
 
 *Metricbeat*
 
@@ -112,6 +113,7 @@ https://github.com/elastic/beats/compare/v6.0.0-beta2...master[Check the HEAD di
 
 *Metricbeat*
 
+- Add connections metricset to RabbitMQ module {pull}6548[6548]
 - Change field type of http header from nested to object {pull}5258[5258]
 - Fix the fetching of process information when some data is missing under MacOS X. {issue}5337[5337]
 - Change `MySQL active connections` visualization title to `MySQL total connections`. {issue}4812[4812]
@@ -178,6 +180,8 @@ https://github.com/elastic/beats/compare/v6.0.0-beta2...master[Check the HEAD di
 - The `add_docker_metadata` and `add_kubernetes_metadata` processors are now GA, instead of Beta. {pull}6105[6105]
 - The node name can be discovered automatically by machine-id matching when beat deployed outside kubernetes cluster. {pull}6146[6146]
 - Panics will be written to the logger before exiting. {pull}6199[6199]
+- Add builder support for autodiscover and annotations builder {pull}6408[6408]
+- Add plugin support for autodiscover builders, providers {pull}6457[6457]
 
 *Auditbeat*
 

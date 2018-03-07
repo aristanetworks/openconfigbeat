@@ -865,7 +865,7 @@ func (ac *addrConn) tryUpdateAddrs(addrs []resolver.Address) bool {
 // the corresponding MethodConfig.
 // If there isn't an exact match for the input method, we look for the default config
 // under the service (i.e /service/). If there is a default MethodConfig for
-// the serivce, we return it.
+// the service, we return it.
 // Otherwise, we return an empty MethodConfig.
 func (cc *ClientConn) GetMethodConfig(method string) MethodConfig {
 	// TODO: Avoid the locking here.
@@ -926,7 +926,7 @@ func (cc *ClientConn) resolveNow(o resolver.ResolveNowOption) {
 
 // Close tears down the ClientConn and all underlying connections.
 func (cc *ClientConn) Close() error {
-	cc.cancel()
+	defer cc.cancel()
 
 	cc.mu.Lock()
 	if cc.conns == nil {

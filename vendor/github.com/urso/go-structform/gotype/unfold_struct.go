@@ -166,8 +166,7 @@ func (u *unfolderStruct) OnKey(ctx *unfoldCtx, key string) error {
 	}
 
 	structPtr := ctx.ptr.current
-	fieldAddr := uintptr(structPtr) + field.offset
-	fieldPtr := unsafe.Pointer(fieldAddr)
+	fieldPtr := unsafe.Pointer(uintptr(structPtr) + field.offset)
 	field.initState(ctx, fieldPtr)
 	return nil
 }

@@ -116,8 +116,16 @@ templates.mapIfc: |
     switch bt {
     {{ range $bt, $gt := data.mapTypes }}
     case structform.{{ $bt }}:
-      ctx.buf.release()
-      return *(*map[string]{{ $gt }})(child), nil
+      value := *(*map[string]{{ $gt }})(child) 
+      {{- if or (eq $bt "AnyType")  (eq $bt "ZeroType") }}
+        last := len(ctx.valueBuffer.mapAny)-1
+        ctx.valueBuffer.mapAny = ctx.valueBuffer.mapAny[:last]
+      {{ else }}
+        last := len(ctx.valueBuffer.mapPrimitive)-1
+        ctx.valueBuffer.mapPrimitive = ctx.valueBuffer.mapPrimitive[:last]
+      {{ end -}}
+      return value, nil
+
     {{ end }}
     default:
       return nil, errTODO()
@@ -128,15 +136,23 @@ templates.mapIfc: |
     switch bt {
     {{ range $bt, $gt := data.mapTypes }}
     case structform.{{ $bt }}:
-      sz := unsafe.Sizeof(map[string]{{ $gt }}{})
-      ptr := ctx.buf.alloc(int(sz))
-      to := (*map[string]{{ $gt }})(ptr)
-      {{ if or (eq $bt "AnyType")  (eq $bt "ZeroType") }}
+      {{- if or (eq $bt "AnyType")  (eq $bt "ZeroType") }}
+        idx := len(ctx.valueBuffer.mapAny)
+        ctx.valueBuffer.mapAny = append(ctx.valueBuffer.mapAny, nil)
+        to := &ctx.valueBuffer.mapAny[idx]
+        ptr := unsafe.Pointer(to)
         unfolder := newUnfolderMapIfc()
+        return to, ptr, unfolder
       {{ else }}
+        idx := len(ctx.valueBuffer.mapPrimitive)
+        ctx.valueBuffer.mapPrimitive = append(ctx.valueBuffer.mapPrimitive, nil)
+        mapPtr := &ctx.valueBuffer.mapPrimitive[idx]
+        ptr := unsafe.Pointer(mapPtr)
+        to := (*map[string]{{ $gt }})(ptr)
         unfolder := newUnfolderMap{{ $gt | capitalize }}()
+        return to, ptr, unfolder
       {{ end }}
-      return to, ptr, unfolder
+
     {{ end }}
     default:
       panic("invalid type code")

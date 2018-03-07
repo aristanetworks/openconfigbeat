@@ -15,7 +15,7 @@ type Unfolder struct {
 type unfoldCtx struct {
 	opts options
 
-	buf buffer
+	// buf buffer
 
 	unfolder unfolderStack
 	value    reflectValueStack
@@ -25,6 +25,14 @@ type unfoldCtx struct {
 	idx      idxStack
 
 	keyCache symbolCache
+
+	valueBuffer unfoldBuf
+}
+
+type unfoldBuf struct {
+	arrays       [][]byte
+	mapPrimitive []map[string]byte
+	mapAny       []map[string]interface{}
 }
 
 type ptrUnfolder interface {
@@ -86,8 +94,14 @@ func NewUnfolder(to interface{}) (*Unfolder, error) {
 	u.idx.init()
 	u.baseType.init()
 
+	u.valueBuffer = unfoldBuf{
+		arrays:       make([][]byte, 0, 4),
+		mapPrimitive: make([]map[string]byte, 0, 1),
+		mapAny:       make([]map[string]interface{}, 0, 4),
+	}
+
 	// TODO: make allocation buffer size configurable
-	u.buf.init(1024)
+	// u.buf.init(1024)
 
 	if to != nil {
 		err := u.SetTarget(to)

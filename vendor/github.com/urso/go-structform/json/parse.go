@@ -3,7 +3,9 @@ package json
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
+	"math"
 	"strconv"
 	"unicode"
 	"unicode/utf16"
@@ -28,9 +30,11 @@ type Parser struct {
 
 	literalBuffer  []byte
 	literalBuffer0 [64]byte
-	isDouble       bool
-	inEscape       bool
-	required       int
+
+	inEscape bool
+	isDouble bool
+
+	required int
 }
 
 var (
@@ -304,6 +308,8 @@ func (p *Parser) stepValue(b []byte, retState state) ([]byte, bool, error) {
 
 	default:
 		// parse number?
+		p.isDouble = false
+
 		isNumber := c == '-' || c == '+' || c == '.' || isDigit(c)
 		if !isNumber {
 			return b, false, errUnknownChar
@@ -444,9 +450,10 @@ func (p *Parser) doString(b []byte) ([]byte, bool, bool, []byte, error) {
 		buf = b[1:]
 	}
 
+	inEscape := p.inEscape
 	for i, c := range buf {
-		if p.inEscape {
-			p.inEscape = false
+		if inEscape {
+			inEscape = false
 			continue
 		}
 
@@ -454,11 +461,11 @@ func (p *Parser) doString(b []byte) ([]byte, bool, bool, []byte, error) {
 			done = true
 			stop = i + delta
 			break
-		}
-		if c == '\\' {
-			p.inEscape = true
+		} else if c == '\\' {
+			inEscape = true
 		}
 	}
+	p.inEscape = inEscape
 
 	if !done {
 		p.literalBuffer = append(p.literalBuffer, b...)
@@ -672,12 +679,57 @@ func (p *Parser) reportNumber(b []byte, isDouble bool) error {
 		}
 	} else {
 		var i int64
-		if i, err = strconv.ParseInt(bytes2Str(b), 10, 64); err == nil {
+		if i, err = parseInt(b); err == nil {
 			err = p.visitor.OnInt64(i)
 		}
 	}
 
 	return err
+}
+
+func parseInt(b []byte) (int64, error) {
+	neg := false
+	if b[0] == '+' {
+		b = b[1:]
+	} else if b[0] == '-' {
+		neg = true
+		b = b[1:]
+	}
+
+	u, err := parseUint(b)
+	n := int64(u)
+	if neg {
+		n = -n
+	}
+	return n, err
+}
+
+func parseUint(b []byte) (uint64, error) {
+	const cutoff = math.MaxUint64/10 + 1
+	const maxVal = math.MaxUint64
+
+	var n uint64
+
+	for _, c := range b {
+		d := int(c) - '0'
+		if d < 0 || d > 9 {
+			return 0, fmt.Errorf("'%s' is no valid number", b)
+		}
+
+		if n >= cutoff {
+			return 0, fmt.Errorf("number overflow parsing '%v'", b)
+		}
+
+		n *= 10
+		n1 := n + uint64(d)
+		if n1 < n || n1 > maxVal {
+			return 0, fmt.Errorf("number overflow parsing '%v'", b)
+		}
+
+		n = n1
+	}
+
+	return n, nil
 }
 
 func (p *Parser) stepNULL(b []byte) ([]byte, bool, error) {

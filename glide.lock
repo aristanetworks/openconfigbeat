@@ -1,23 +1,23 @@
 hash: 3fc8bac19692ded1e0fb20d0054386e787912acab3e0693134c0da3901f937d1
-updated: 2018-02-21T17:43:11.614448188Z
+updated: 2018-03-07T09:42:56.45238499Z
 imports:
 - name: github.com/aristanetworks/goarista
-  version: 1407612bacdb9230af4463aa6e2e226c1a102670
+  version: 9201843c8d841a89cd217f8765fe12836f694106
   subpackages:
   - elasticsearch
   - gnmi
   - openconfig
 - name: github.com/davecgh/go-spew
-  version: 87df7c60d5820d0f8ae11afede5aa52325c09717
+  version: 8991bc29aa16c548c550c7ff78260e27b9ab7c73
   subpackages:
   - spew
 - name: github.com/docker/distribution
-  version: 6664ec703991875e14419ff4960921cce7678bab
+  version: 6fca8d6e6713acbdf3f9ca40cf6370fc5ee5ee53
   subpackages:
   - digestset
   - reference
 - name: github.com/docker/docker
-  version: 0ede01237c9ab871f1b8db0364427407f3e46541
+  version: f3a3778808dae0da82f2acf300875b5da931c000
   subpackages:
   - api
   - api/types
@@ -37,7 +37,7 @@ imports:
   - api/types/volume
   - client
 - name: github.com/docker/go-connections
-  version: 7beb39f0b969b075d1325fecb092faf27fd357b6
+  version: 7395e3f8aa162843a74ed6d48e79627d9792ac55
   subpackages:
   - nat
   - sockets
@@ -51,12 +51,13 @@ imports:
 - name: github.com/eapache/go-xerial-snappy
   version: bb955e01b9346ac19dc29eb16586c90ded99a98c
 - name: github.com/eapache/queue
-  version: 44cc805cf13205b55f69e14bcb69867d1ae92f98
+  version: 093482f3f8ce946c05bcba64badd2c82369e084d
 - name: github.com/elastic/beats
-  version: baa740ddb5c47fbb61e7bc852eca46d4aa74da56
+  version: 7e28cf7131d749cd0354cd4f90057d39a4a4d0f3
   subpackages:
   - libbeat/api
   - libbeat/autodiscover
+  - libbeat/autodiscover/builder
   - libbeat/autodiscover/meta
   - libbeat/autodiscover/providers/docker
   - libbeat/autodiscover/providers/kubernetes
@@ -140,7 +141,7 @@ imports:
   - json
   - yaml
 - name: github.com/elastic/gosigar
-  version: a3814ce5008e612a0c6d027608b54e1d0d9a5613
+  version: 01b55aeacddd04369e674d32e0eb9a3e7e4394fe
   subpackages:
   - cgroup
   - sys/linux
@@ -159,7 +160,7 @@ imports:
 - name: github.com/fatih/color
   version: 507f6050b8568533fb3f5504de8e5205fa62a114
 - name: github.com/garyburd/redigo
-  version: d1ed5c67e5794de818ea85e6b522fda02623a484
+  version: a7327d8ced8067e916e7e35490522fd0182fa839
   subpackages:
   - internal
   - redis
@@ -170,7 +171,7 @@ imports:
   subpackages:
   - oleutil
 - name: github.com/gogo/protobuf
-  version: b75782e777cfa7ca469bc46cc313ddd26e6e9d1c
+  version: d5bc08a2c4c572e9bcff820aa125fe38ac3a3a42
   subpackages:
   - proto
 - name: github.com/golang/protobuf
@@ -189,7 +190,7 @@ imports:
 - name: github.com/joeshaw/multierror
   version: 69b34d4ec901851247ae7e77d33909caf9df99ed
 - name: github.com/klauspost/compress
-  version: 8a8c9b92f99fe49f9c13688b0ee2824bb586c972
+  version: 2c62357afe99df84d86deb8044ab5b16ac2d1712
   subpackages:
   - flate
   - zlib
@@ -234,17 +235,17 @@ imports:
 - name: github.com/satori/go.uuid
   version: 36e9d2ebbde5e3f13ab2e25625fd453271d6522e
 - name: github.com/Shopify/sarama
-  version: 3d1fae12e48b5ef9b6a06a32c2451268345a0d00
+  version: eae91468c24263f06ae73dce45eb26252c73b1d6
 - name: github.com/spf13/cobra
-  version: 1a618fb24b01a0f393ccd82d55c4d8058bdeaf5c
+  version: c6c44e6fdcc30161c7f4480754da7230d01c06e3
 - name: github.com/spf13/pflag
   version: ee5fd03fd6acfd43e44aea0b4135958546ed8e73
 - name: github.com/StackExchange/wmi
   version: 5d049714c4a64225c3c79a7cf7d02f7fb5b96338
 - name: github.com/stretchr/testify
-  version: be8372ae8ec5c6daaed3cc28ebf73c54b737c240
+  version: b89eecf5ca5db6d3ba60b237ffe3df7bafb7662f
 - name: github.com/urso/go-structform
-  version: 035638634d48c28a09bb7aa00ef78f4ffb83fa34
+  version: ffba241e95c31878fc3b94dff7b15b22853e061b
   subpackages:
   - gotype
   - internal/unsafe
@@ -264,12 +265,12 @@ imports:
   - zapcore
   - zaptest/observer
 - name: golang.org/x/crypto
-  version: 432090b8f568c018896cd8a0fb0345872bbac6ce
+  version: 85f98707c97e11569271e4d9b3d397e079c4f4d0
   subpackages:
   - pbkdf2
   - ssh/terminal
 - name: golang.org/x/net
-  version: cbe0f9307d0156177f9dd5dc85da1a31abc5f2fb
+  version: d25186b37f34ebdbbea8f488ef055638dfab272d
   subpackages:
   - context
   - context/ctxhttp
@@ -281,7 +282,7 @@ imports:
   - proxy
   - trace
 - name: golang.org/x/sys
-  version: 37707fdb30a5b38865cfb95e5aab41707daec7fd
+  version: dd2ff4accc098aceecb86b36eaa7829b2a17b1c9
   subpackages:
   - unix
   - windows
@@ -290,18 +291,18 @@ imports:
   - windows/svc/debug
   - windows/svc/eventlog
 - name: golang.org/x/text
-  version: 9e2b64d659da1afe07ce1c9c1dfefc09d188f21e
+  version: b7ef84aaf62aa3e70962625c80a571ae7c17cb40
   subpackages:
   - secure/bidirule
   - transform
   - unicode/bidi
   - unicode/norm
 - name: google.golang.org/genproto
-  version: 2b5a72b8730b0b16380010cfe5286c42108d88e7
+  version: df60624c1e9b9d2973e889c7a1cff73155da81c4
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: dfa18343df54bda471a4b53677aa7c0d0df882d1
+  version: 7c5299d71e2b8d403195f6071eecea690bf5622a
   subpackages:
   - balancer
   - balancer/base
@@ -326,5 +327,5 @@ imports:
   - tap
   - transport
 - name: gopkg.in/yaml.v2
-  version: d670f9405373e636a5a2765eea47fac0c9bc91a4
+  version: 7f97868eec74b32b0982dd158a51a446d1da7eb5
 testImports: []

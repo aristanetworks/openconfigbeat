@@ -2,8 +2,7 @@
 // Use of this source code is governed by the Apache License 2.0
 // that can be found in the COPYING file.
 
-// Package path contains methods for dealing with absolute
-// paths elementally.
+// Package path contains methods for dealing with elemental paths.
 package path
 
 import (
@@ -13,31 +12,55 @@ import (
 	"github.com/aristanetworks/goarista/key"
 )
 
-// Path represents an absolute path decomposed into elements
-// where each element is a key.Key.
+// Path represents a path decomposed into elements where each
+// element is a key.Key. A Path can be interpreted as either
+// absolute or relative depending on how it is used.
 type Path []key.Key
 
 // New constructs a Path from a variable number of elements.
 // Each element may either be a key.Key or a value that can
 // be wrapped by a key.Key.
 func New(elements ...interface{}) Path {
-	path := make(Path, len(elements))
-	copyElements(path, elements...)
-	return path
+	result := make(Path, len(elements))
+	copyElements(result, elements...)
+	return result
 }
 
 // Append appends a variable number of elements to a Path.
 // Each element may either be a key.Key or a value that can
-// be wrapped by a key.Key.
+// be wrapped by a key.Key. Note that calling Append on a
+// single Path returns that same Path, whereas in all other
+// cases a new Path is returned.
 func Append(path Path, elements ...interface{}) Path {
 	if len(elements) == 0 {
 		return path
 	}
 	n := len(path)
-	p := make(Path, n+len(elements))
-	copy(p, path)
-	copyElements(p[n:], elements...)
-	return p
+	result := make(Path, n+len(elements))
+	copy(result, path)
+	copyElements(result[n:], elements...)
+	return result
+}
+
+// Join joins a variable number of Paths together. Each path
+// in the joining is treated as a subpath of its predecessor.
+// Calling Join with no arguments returns nil.
+func Join(paths ...Path) Path {
+	if len(paths) == 0 {
+		return nil
+	}
+	n := 0
+	for _, path := range paths {
+		n += len(path)
+	}
+	result, i := make(Path, n), 0
+	for _, path := range paths {
+		if n = len(path); n > 0 {
+			copy(result[i:i+n], path)
+			i += n
+		}
+	}
+	return result
 }
 
 // Base returns the last element of the Path. If the Path is
@@ -49,40 +72,47 @@ func Base(path Path) key.Key {
 	return nil
 }
 
-// Clone constructs a copy of a Path.
+// Clone returns a new Path with the same elements as in the
+// provided Path.
 func Clone(path Path) Path {
-	p := make(Path, len(path))
-	copy(p, path)
-	return p
+	result := make(Path, len(path))
+	copy(result, path)
+	return result
 }
 
-// Equal returns whether the Path a is the same as Path b.
+// Equal returns whether Path a and Path b are the same
+// length and whether each element in b corresponds to the
+// same element in a.
 func Equal(a, b Path) bool {
 	return len(a) == len(b) && hasPrefix(a, b)
 }
 
-// HasPrefix returns whether the Path b is a prefix of Path a.
+// HasPrefix returns whether Path b is at most the length
+// of Path a and whether each element in b corresponds to
+// the same element in a from the first element.
 func HasPrefix(a, b Path) bool {
 	return len(a) >= len(b) && hasPrefix(a, b)
 }
 
-// Match returns whether the Path a and Path b are the same
+// Match returns whether Path a and Path b are the same
 // length and whether each element in b corresponds to the
 // same element or a wildcard in a.
 func Match(a, b Path) bool {
 	return len(a) == len(b) && matchPrefix(a, b)
 }
 
-// MatchPrefix returns whether the Path a is longer than
-// Path b and whether each element in b corresponds to the
-// same element or a wildcard in a.
+// MatchPrefix returns whether Path b is at most the length
+// of Path a and whether each element in b corresponds to
+// the same element or a wildcard in a from the first
+// element.
 func MatchPrefix(a, b Path) bool {
 	return len(a) >= len(b) && matchPrefix(a, b)
 }
 
 // FromString constructs a Path from the elements resulting
 // from a split of the input string by "/". Strings that do
-// not lead with a '/' are accepted but not reconstructable.
+// not lead with a '/' are accepted but not reconstructable
+// with Path.String.
 func FromString(str string) Path {
 	if str == "" {
 		return Path{}
@@ -90,14 +120,14 @@ func FromString(str string) Path {
 		str = str[1:]
 	}
 	elements := strings.Split(str, "/")
-	path := make(Path, len(elements))
+	result := make(Path, len(elements))
 	for i, element := range elements {
-		path[i] = key.New(element)
+		result[i] = key.New(element)
 	}
-	return path
+	return result
 }
 
-// String returns the Path as a string.
+// String returns the Path as an absolute path string.
 func (p Path) String() string {
 	if len(p) == 0 {
 		return "/"
@@ -110,13 +140,13 @@ func (p Path) String() string {
 	return buf.String()
 }
 
-func copyElements(path Path, elements ...interface{}) {
+func copyElements(dest Path, elements ...interface{}) {
 	for i, element := range elements {
 		switch val := element.(type) {
 		case key.Key:
-			path[i] = val
+			dest[i] = val
 		default:
-			path[i] = key.New(val)
+			dest[i] = key.New(val)
 		}
 	}
 }

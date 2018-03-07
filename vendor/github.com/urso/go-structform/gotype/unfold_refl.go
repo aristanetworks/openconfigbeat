@@ -166,8 +166,7 @@ func (u *unfolderReflMapOnElem) prepare(ctx *unfoldCtx) reflect.Value {
 	v := ptr.Elem()
 	et := v.Type().Elem()
 
-	targetPtr := ctx.buf.alloc(int(et.Size()))
-	target := reflect.NewAt(et, targetPtr)
+	target := reflect.New(et)
 	ctx.value.push(target)
 	return target
 }
@@ -180,7 +179,6 @@ func (u *unfolderReflMapOnElem) process(ctx *unfoldCtx) {
 	m := ptr.Elem()
 	m.SetMapIndex(reflect.ValueOf(ctx.key.pop()), v)
 
-	ctx.buf.release()
 	ctx.unfolder.current = u.shared.waitKey
 }
 

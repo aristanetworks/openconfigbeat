@@ -381,6 +381,10 @@ func (self *ProcFDUsage) Get(pid int) error {
 	return ErrNotImplemented{runtime.GOOS}
 }
 
+func (self *Rusage) Get(pid int) error {
+	return ErrNotImplemented{runtime.GOOS}
+}
+
 func fillCpu(cpu *Cpu, load [C.CPUSTATES]C.long) {
 	cpu.User = uint64(load[0])
 	cpu.Nice = uint64(load[1])
