@@ -69,7 +69,7 @@ func formatValue(update *pb.Update) (interface{}, error) {
 		switch update.Value.Type {
 		case pb.Encoding_JSON, pb.Encoding_JSON_IETF:
 			decoder := json.NewDecoder(bytes.NewReader(update.Value.Value))
-			decoder.UseNumber()
+			//decoder.UseNumber()
 			var output interface{}
 			err := decoder.Decode(&output)
 			return output, err
