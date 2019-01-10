@@ -5,7 +5,6 @@ BEAT_PATH=$(BEAT_DIR)/$(BEAT_NAME)
 SYSTEM_TESTS=false
 TEST_ENVIRONMENT=false
 ES_BEATS=./vendor/github.com/elastic/beats
-GOPACKAGES=$(shell glide novendor)
 GOIMPORTS_LOCAL_PREFIX=github.com/aristanetworks
 PREFIX ?= .
 DOCKER = docker
@@ -20,13 +19,14 @@ endif
 GOBUILD_FLAGS ?= -ldflags "-s -w -X github.com/aristanetworks/openconfigbeat/cmd.Version=$(GOPKGVERSION)"
 
 # Path to the libbeat Makefile
+CHECK_HEADERS_DISABLED=1
 -include $(ES_BEATS)/libbeat/scripts/Makefile
 
 .PHONY: collect
 
 .PHONY: update-deps
 update-deps:
-	glide update && ./clean_vendor.sh
+	dep ensure -update
 
 # This is called by the beats packer before building starts
 .PHONY: before-build
@@ -45,5 +45,5 @@ docker-stop:
 .PHONY: beater-test
 beater-test: $(BEAT_NAME)
 	$(MAKE) docker-start
-	$(MAKE) testsuite
+	$(MAKE) unit-tests
 	$(MAKE) docker-stop

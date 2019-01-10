@@ -1,11 +1,31 @@
+// Licensed to Elasticsearch B.V. under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. Elasticsearch B.V. licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 package builder
 
 import (
+	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/elastic/beats/libbeat/common"
+	"github.com/elastic/beats/libbeat/logp"
 )
 
 // GetContainerID returns the id of a container
@@ -51,6 +71,43 @@ func GetHintAsList(hints common.MapStr, key, config string) []string {
 	return nil
 }
 
+// GetProcessors gets processor definitions from the hints and returns a list of configs as a MapStr
+func GetProcessors(hints common.MapStr, key string) []common.MapStr {
+	rawProcs := GetHintMapStr(hints, key, "processors")
+	if rawProcs == nil {
+		return nil
+	}
+
+	var words, nums []string
+
+	for key := range rawProcs {
+		if _, err := strconv.Atoi(key); err != nil {
+			words = append(words, key)
+			continue
+		} else {
+			nums = append(nums, key)
+		}
+	}
+
+	sort.Strings(nums)
+
+	var configs []common.MapStr
+	for _, key := range nums {
+		rawCfg, _ := rawProcs[key]
+		if config, ok := rawCfg.(common.MapStr); ok {
+			configs = append(configs, config)
+		}
+	}
+
+	for _, word := range words {
+		configs = append(configs, common.MapStr{
+			word: rawProcs[word],
+		})
+	}
+
+	return configs
+}
+
 func getStringAsList(input string) []string {
 	if input == "" {
 		return []string{}
@@ -62,6 +119,29 @@ func getStringAsList(input string) []string {
 	}
 
 	return list
+}
+
+// GetHintAsConfigs can read a hint in the form of a stringified JSON and return a common.MapStr
+func GetHintAsConfigs(hints common.MapStr, key string) []common.MapStr {
+	if str := GetHintString(hints, key, "raw"); str != "" {
+		// check if it is a single config
+		if str[0] != '[' {
+			cfg := common.MapStr{}
+			if err := json.Unmarshal([]byte(str), &cfg); err != nil {
+				logp.Debug("autodiscover.builder", "unable to unmarshal json due to error: %v", err)
+				return nil
+			}
+			return []common.MapStr{cfg}
+		}
+
+		cfg := []common.MapStr{}
+		if err := json.Unmarshal([]byte(str), &cfg); err != nil {
+			logp.Debug("autodiscover.builder", "unable to unmarshal json due to error: %v", err)
+			return nil
+		}
+		return cfg
+	}
+	return nil
 }
 
 // IsNoOp is a big red button to prevent spinning up Runners in case of issues.
@@ -77,30 +157,39 @@ func IsNoOp(hints common.MapStr, key string) bool {
 // GenerateHints parses annotations based on a prefix and sets up hints that can be picked up by individual Beats.
 func GenerateHints(annotations common.MapStr, container, prefix string) common.MapStr {
 	hints := common.MapStr{}
-	plen := len(prefix)
+	if rawEntries, err := annotations.GetValue(prefix); err == nil {
+		if entries, ok := rawEntries.(common.MapStr); ok {
+			for key, rawValue := range entries {
+				// If there are top level hints like co.elastic.logs/ then just add the values after the /
+				// Only consider namespaced annotations
+				parts := strings.Split(key, "/")
+				if len(parts) == 2 {
+					hintKey := fmt.Sprintf("%s.%s", parts[0], parts[1])
+					// Insert only if there is no entry already. container level annotations take
+					// higher priority.
+					if _, err := hints.GetValue(hintKey); err != nil {
+						hints.Put(hintKey, rawValue)
+					}
+				} else if container != "" {
+					// Only consider annotations that are of type common.MapStr as we are looking for
+					// container level nesting
+					builderHints, ok := rawValue.(common.MapStr)
+					if !ok {
+						continue
+					}
 
-	for key, value := range annotations {
-		// Filter out all annotations which start with the prefix
-		if strings.Index(key, prefix) == 0 {
-			subKey := key[plen:]
-			// Split an annotation by /. Ex co.elastic.metrics/module would split to ["metrics", "module"]
-			// part[0] would give the type of config and part[1] would give the config entry
-			parts := strings.Split(subKey, "/")
-			if len(parts) == 0 || parts[0] == "" {
-				continue
-			}
-			// tc stands for type and container
-			// Split part[0] to get the builder type and the container if it exists
-			tc := strings.Split(parts[0], ".")
-			k := fmt.Sprintf("%s.%s", tc[0], parts[1])
-			if len(tc) == 2 && container != "" && tc[1] == container {
-				// Container specific properties always carry higher preference.
-				// Overwrite properties even if they exist.
-				hints.Put(k, value)
-			} else {
-				// Only insert the config if it doesn't already exist
-				if _, err := hints.GetValue(k); err != nil {
-					hints.Put(k, value)
+					// Check for <containerName>/ prefix
+					for hintKey, rawVal := range builderHints {
+						if strings.HasPrefix(hintKey, container) {
+							// Split the key to get part[1] to be the hint
+							parts := strings.Split(hintKey, "/")
+							if len(parts) == 2 {
+								// key will be the hint type
+								hintKey := fmt.Sprintf("%s.%s", key, parts[1])
+								hints.Put(hintKey, rawVal)
+							}
+						}
+					}
 				}
 			}
 		}

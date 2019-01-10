@@ -149,14 +149,14 @@ func TestPublish(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Hits.Total != 3 {
-		t.Errorf("expected 3 result got %d", result.Hits.Total)
+	if result.Hits.Total.Value != 3 {
+		t.Errorf("expected 3 result got %d", result.Hits.Total.Value)
 	}
 	_, result, err = client.Connection.SearchURI(index, "doc", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Hits.Total != 10 {
-		t.Errorf("expected 10 result got %d", result.Hits.Total)
+	if result.Hits.Total.Value != 10 {
+		t.Errorf("expected 10 result got %d", result.Hits.Total.Value)
 	}
 }

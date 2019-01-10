@@ -12,7 +12,6 @@ Ensure that this folder is at the following location:
 ### Requirements
 
 * [Golang](https://golang.org/dl/) >= 1.9
-* [Glide](https://github.com/Masterminds/glide) >= 0.10.0
 
 ### Configuration
 Edit `_meta/beat.yml` with the appropriate configuration.
@@ -23,7 +22,7 @@ To build the binary for Openconfigbeat run the command below. This will generate
 in the same directory with the name openconfigbeat.
 
 ```
-make
+make openconfigbeat
 ```
 
 

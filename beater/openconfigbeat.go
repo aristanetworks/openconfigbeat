@@ -230,7 +230,7 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 		// Subscribe
 		respChan := make(chan *pb.SubscribeResponse)
 		errChan := make(chan error)
-		go gnmi.Subscribe(ctx, client, bt.paths, respChan, errChan)
+		go gnmi.Subscribe(ctx, client, &gnmi.SubscribeOptions{Paths: bt.paths}, respChan, errChan)
 		device, _, err := net.SplitHostPort(addr)
 		if err != nil {
 			return err

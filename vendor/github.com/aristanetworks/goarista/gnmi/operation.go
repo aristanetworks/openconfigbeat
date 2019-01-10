@@ -5,6 +5,7 @@
 package gnmi
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/base64"
@@ -13,17 +14,19 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 	"google.golang.org/grpc/codes"
 )
 
 // Get sents a GetRequest to the given client.
-func Get(ctx context.Context, client pb.GNMIClient, paths [][]string) error {
-	req, err := NewGetRequest(paths)
+func Get(ctx context.Context, client pb.GNMIClient, paths [][]string, origin string) error {
+	req, err := NewGetRequest(paths, origin)
 	if err != nil {
 		return err
 	}
@@ -32,8 +35,9 @@ func Get(ctx context.Context, client pb.GNMIClient, paths [][]string) error {
 		return err
 	}
 	for _, notif := range resp.Notification {
+		prefix := StrPath(notif.Prefix)
 		for _, update := range notif.Update {
-			fmt.Printf("%s:\n", StrPath(update.Path))
+			fmt.Printf("%s:\n", path.Join(prefix, StrPath(update.Path)))
 			fmt.Println(StrUpdateVal(update))
 		}
 	}
@@ -175,41 +179,52 @@ func strDecimal64(d *pb.Decimal64) string {
 
 // strLeafList builds a human-readable form of a leaf-list. e.g. [1, 2, 3] or [a, b, c]
 func strLeaflist(v *pb.ScalarArray) string {
-	var buf bytes.Buffer
-	buf.WriteByte('[')
+	var b strings.Builder
+	b.WriteByte('[')
 
 	for i, elm := range v.Element {
-		buf.WriteString(StrVal(elm))
+		b.WriteString(StrVal(elm))
 		if i < len(v.Element)-1 {
-			buf.WriteString(", ")
+			b.WriteString(", ")
 		}
 	}
 
-	buf.WriteByte(']')
-	return buf.String()
+	b.WriteByte(']')
+	return b.String()
 }
 
-func update(p *pb.Path, val string) *pb.Update {
+func update(p *pb.Path, val string) (*pb.Update, error) {
 	var v *pb.TypedValue
 	switch p.Origin {
 	case "":
 		v = &pb.TypedValue{
 			Value: &pb.TypedValue_JsonIetfVal{JsonIetfVal: extractJSON(val)}}
-	case "cli":
+	case "eos_native":
+		v = &pb.TypedValue{
+			Value: &pb.TypedValue_JsonVal{JsonVal: extractJSON(val)}}
+	case "cli", "test-regen-cli":
 		v = &pb.TypedValue{
 			Value: &pb.TypedValue_AsciiVal{AsciiVal: val}}
+	case "p4_config":
+		b, err := ioutil.ReadFile(val)
+		if err != nil {
+			return nil, err
+		}
+		v = &pb.TypedValue{
+			Value: &pb.TypedValue_ProtoBytes{ProtoBytes: b}}
 	default:
-		panic(fmt.Errorf("unexpected origin: %q", p.Origin))
+		return nil, fmt.Errorf("unexpected origin: %q", p.Origin)
 	}
 
-	return &pb.Update{Path: p, Val: v}
+	return &pb.Update{Path: p, Val: v}, nil
 }
 
 // Operation describes an gNMI operation.
 type Operation struct {
-	Type string
-	Path []string
-	Val  string
+	Type   string
+	Origin string
+	Path   []string
+	Val    string
 }
 
 func newSetRequest(setOps []*Operation) (*pb.SetRequest, error) {
@@ -219,14 +234,23 @@ func newSetRequest(setOps []*Operation) (*pb.SetRequest, error) {
 		if err != nil {
 			return nil, err
 		}
+		p.Origin = op.Origin
 
 		switch op.Type {
 		case "delete":
 			req.Delete = append(req.Delete, p)
 		case "update":
-			req.Update = append(req.Update, update(p, op.Val))
+			u, err := update(p, op.Val)
+			if err != nil {
+				return nil, err
+			}
+			req.Update = append(req.Update, u)
 		case "replace":
-			req.Replace = append(req.Replace, update(p, op.Val))
+			u, err := update(p, op.Val)
+			if err != nil {
+				return nil, err
+			}
+			req.Replace = append(req.Replace, u)
 		}
 	}
 	return req, nil
@@ -251,16 +275,18 @@ func Set(ctx context.Context, client pb.GNMIClient, setOps []*Operation) error {
 }
 
 // Subscribe sends a SubscribeRequest to the given client.
-func Subscribe(ctx context.Context, client pb.GNMIClient, paths [][]string,
+func Subscribe(ctx context.Context, client pb.GNMIClient, subscribeOptions *SubscribeOptions,
 	respChan chan<- *pb.SubscribeResponse, errChan chan<- error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	defer close(respChan)
+
 	stream, err := client.Subscribe(ctx)
 	if err != nil {
 		errChan <- err
 		return
 	}
-	req, err := NewSubscribeRequest(paths)
+	req, err := NewSubscribeRequest(subscribeOptions)
 	if err != nil {
 		errChan <- err
 		return
@@ -280,6 +306,26 @@ func Subscribe(ctx context.Context, client pb.GNMIClient, paths [][]string,
 			return
 		}
 		respChan <- resp
+
+		// For POLL subscriptions, initiate a poll request by pressing ENTER
+		if subscribeOptions.Mode == "poll" {
+			switch resp.Response.(type) {
+			case *pb.SubscribeResponse_SyncResponse:
+				fmt.Print("Press ENTER to send a poll request: ")
+				reader := bufio.NewReader(os.Stdin)
+				reader.ReadString('\n')
+
+				pollReq := &pb.SubscribeRequest{
+					Request: &pb.SubscribeRequest_Poll{
+						Poll: &pb.Poll{},
+					},
+				}
+				if err := stream.Send(pollReq); err != nil {
+					errChan <- err
+					return
+				}
+			}
+		}
 	}
 }
 
@@ -293,10 +339,16 @@ func LogSubscribeResponse(response *pb.SubscribeResponse) error {
 			return errors.New("initial sync failed")
 		}
 	case *pb.SubscribeResponse_Update:
+		t := time.Unix(0, resp.Update.Timestamp).UTC()
 		prefix := StrPath(resp.Update.Prefix)
 		for _, update := range resp.Update.Update {
-			fmt.Printf("%s = %s\n", path.Join(prefix, StrPath(update.Path)),
+			fmt.Printf("[%s] %s = %s\n", t.Format(time.RFC3339Nano),
+				path.Join(prefix, StrPath(update.Path)),
 				StrUpdateVal(update))
+		}
+		for _, del := range resp.Update.Delete {
+			fmt.Printf("[%s] Deleted %s\n", t.Format(time.RFC3339Nano),
+				path.Join(prefix, StrPath(del)))
 		}
 	}
 	return nil

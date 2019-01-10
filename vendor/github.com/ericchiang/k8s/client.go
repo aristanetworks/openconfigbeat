@@ -2,12 +2,13 @@
 Package k8s implements a Kubernetes client.
 
 	import (
+		"context"
+
 		"github.com/ericchiang/k8s"
 		appsv1 "github.com/ericchiang/k8s/apis/apps/v1"
-		metav1 "github.com/ericchiang/k8s/apis/meta/v1"
 	)
 
-	func listDeployments() (*apssv1.DeploymentList, error) {
+	func listDeployments(ctx context.Context) (*appsv1.DeploymentList, error) {
 		c, err := k8s.NewInClusterClient()
 		if err != nil {
 			return nil, err
@@ -36,7 +37,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"golang.org/x/net/http2"
@@ -80,8 +80,27 @@ type Client struct {
 	// The URL of the API server.
 	Endpoint string
 
-	// Default namespaces for objects that don't supply a namespace in
-	// their object metadata.
+	// Namespace is the name fo the default reconciled from the client's config.
+	// It is set when constructing a client using NewClient(), and defaults to
+	// the value "default".
+	//
+	// This value should be used to access the client's default namespace. For
+	// example, to create a configmap in the default namespace, use client.Namespace
+	// when to fill the ObjectMeta:
+	//
+	//		client, err := k8s.NewClient(config)
+	//		if err != nil {
+	//			// handle error
+	//		}
+	//		cm := v1.ConfigMap{
+	//			Metadata: &metav1.ObjectMeta{
+	//				Name:      &k8s.String("my-configmap"),
+	//				Namespace: &client.Namespace,
+	//			},
+	//			Data: map[string]string{"foo": "bar", "spam": "eggs"},
+	//		}
+	//		err := client.Create(ctx, cm)
+	//
 	Namespace string
 
 	// SetHeaders provides a hook for modifying the HTTP headers of all requests.
@@ -111,52 +130,6 @@ func (c *Client) newRequest(ctx context.Context, verb, url string, body io.Reade
 		}
 	}
 	return req.WithContext(ctx), nil
-}
-
-// Option represents optional call parameters, such as label selectors.
-type Option interface {
-	queryParam() (key, val string)
-}
-
-type queryParam struct {
-	paramName  string
-	paramValue string
-}
-
-func (o queryParam) queryParam() (string, string) {
-	return o.paramName, o.paramValue
-}
-
-// QueryParam can be used to manually set a URL query parameter by name.
-func QueryParam(name, value string) Option {
-	return queryParam{
-		paramName:  name,
-		paramValue: value,
-	}
-}
-
-type resourceVersionOption string
-
-func (r resourceVersionOption) queryParam() (string, string) {
-	return "resourceVersion", string(r)
-}
-
-// ResourceVersion causes watch operations to only show changes since
-// a particular version of a resource.
-func ResourceVersion(resourceVersion string) Option {
-	return resourceVersionOption(resourceVersion)
-}
-
-type timeoutSeconds string
-
-func (t timeoutSeconds) queryParam() (string, string) {
-	return "timeoutSeconds", string(t)
-}
-
-// Timeout declares the timeout for list and watch operations. Timeout
-// is only accurate to the second.
-func Timeout(d time.Duration) Option {
-	return timeoutSeconds(strconv.FormatInt(int64(d/time.Second), 10))
 }
 
 // NewClient initializes a client from a client config.
@@ -429,7 +402,16 @@ func (c *Client) Delete(ctx context.Context, req Resource, options ...Option) er
 	if err != nil {
 		return err
 	}
-	return c.do(ctx, "DELETE", url, nil, nil)
+	o := &deleteOptions{
+		Kind:              "DeleteOptions",
+		APIVersion:        "v1",
+		PropagationPolicy: "Background",
+	}
+	for _, option := range options {
+		option.updateDelete(req, o)
+	}
+
+	return c.do(ctx, "DELETE", url, o, nil)
 }
 
 func (c *Client) Update(ctx context.Context, req Resource, options ...Option) error {

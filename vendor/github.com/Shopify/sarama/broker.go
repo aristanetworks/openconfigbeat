@@ -86,6 +86,7 @@ func (b *Broker) Open(conf *Config) error {
 		dialer := net.Dialer{
 			Timeout:   conf.Net.DialTimeout,
 			KeepAlive: conf.Net.KeepAlive,
+			LocalAddr: conf.Net.LocalAddr,
 		}
 
 		if conf.Net.TLS.Enable {
@@ -205,6 +206,17 @@ func (b *Broker) ID() int32 {
 // Addr returns the broker address as either retrieved from Kafka's metadata or passed to NewBroker.
 func (b *Broker) Addr() string {
 	return b.addr
+}
+
+// Rack returns the broker's rack as retrieved from Kafka's metadata or the
+// empty string if it is not known.  The returned value corresponds to the
+// broker's broker.rack configuration setting.  Requires protocol version to be
+// at least v0.10.0.0.
+func (b *Broker) Rack() string {
+	if b.rack == nil {
+		return ""
+	}
+	return *b.rack
 }
 
 func (b *Broker) GetMetadata(request *MetadataRequest) (*MetadataResponse, error) {
@@ -408,6 +420,17 @@ func (b *Broker) DeleteTopics(request *DeleteTopicsRequest) (*DeleteTopicsRespon
 	return response, nil
 }
 
+func (b *Broker) CreatePartitions(request *CreatePartitionsRequest) (*CreatePartitionsResponse, error) {
+	response := new(CreatePartitionsResponse)
+
+	err := b.sendAndReceive(request, response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
 func (b *Broker) DeleteRecords(request *DeleteRecordsRequest) (*DeleteRecordsResponse, error) {
 	response := new(DeleteRecordsResponse)
 
@@ -528,6 +551,17 @@ func (b *Broker) AlterConfigs(request *AlterConfigsRequest) (*AlterConfigsRespon
 
 	return response, nil
 }
+
+func (b *Broker) DeleteGroups(request *DeleteGroupsRequest) (*DeleteGroupsResponse, error) {
+	response := new(DeleteGroupsResponse)
+
+	if err := b.sendAndReceive(request, response); err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
 func (b *Broker) send(rb protocolBody, promiseResponse bool) (*responsePromise, error) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
