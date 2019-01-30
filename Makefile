@@ -1,4 +1,4 @@
-ELASTICSEARCH_VERSION = 6.2.2
+ELASTICSEARCH_VERSION = 6.6.0
 BEAT_NAME=openconfigbeat
 BEAT_DIR=github.com/aristanetworks
 BEAT_PATH=$(BEAT_DIR)/$(BEAT_NAME)
