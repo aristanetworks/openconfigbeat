@@ -87,7 +87,7 @@ func formatValue(update *pb.Update) (interface{}, error) {
 		err := json.Unmarshal(v.JsonIetfVal, &output)
 		return output, err
 	case *pb.TypedValue_JsonVal:
-		var output interface{}
+		var output map[string]interface{}
 		err := json.Unmarshal(v.JsonVal, &output)
 		return output, err
 	case *pb.TypedValue_IntVal:
@@ -128,6 +128,8 @@ func convertUpdate(dataset string, prefix string, update *pb.Update) (common.Map
 	if _, ok := outputValue.(map[string]interface{}); !ok {
 		k := fmt.Sprintf("%T", outputValue)
 		m["update"] = map[string]interface{}{k: outputValue}
+	} else {
+		m["update"] = outputValue
 	}
 	return m, nil
 }
