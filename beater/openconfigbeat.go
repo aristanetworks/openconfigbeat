@@ -87,7 +87,7 @@ func formatValue(update *pb.Update) (interface{}, error) {
 		err := json.Unmarshal(v.JsonIetfVal, &output)
 		return output, err
 	case *pb.TypedValue_JsonVal:
-		var output map[string]interface{}
+		var output interface{}
 		err := json.Unmarshal(v.JsonVal, &output)
 		return output, err
 	case *pb.TypedValue_IntVal:
