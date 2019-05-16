@@ -19,6 +19,8 @@ openconfigbeat:
   # The password for the user on the device.
   #password: "password"
 
+  # Enable TLS.
+  #tls: true
 
 #================================ General =====================================
 

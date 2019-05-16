@@ -19,6 +19,7 @@ type Config struct {
 	Paths       []string `config:"paths"`
 	Username    string   `config:"username"`
 	Password    string   `config:"password"`
+	TLS         bool     `config:"tls"`
 }
 
 var DefaultConfig = Config{}

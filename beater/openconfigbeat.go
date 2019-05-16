@@ -220,6 +220,7 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 			Addr:     addr,
 			Username: bt.config.Username,
 			Password: bt.config.Password,
+			TLS:      bt.config.TLS,
 		}
 		ctx := gnmi.NewContext(context.Background(), gnmiConfig)
 		client, err := gnmi.Dial(gnmiConfig)
