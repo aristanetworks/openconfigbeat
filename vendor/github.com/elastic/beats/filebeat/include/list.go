@@ -21,6 +21,7 @@ package include
 
 import (
 	// Import packages that need to register themselves.
+	_ "github.com/elastic/beats/filebeat/input/container"
 	_ "github.com/elastic/beats/filebeat/input/docker"
 	_ "github.com/elastic/beats/filebeat/input/log"
 	_ "github.com/elastic/beats/filebeat/input/redis"
@@ -39,6 +40,7 @@ import (
 	_ "github.com/elastic/beats/filebeat/module/logstash"
 	_ "github.com/elastic/beats/filebeat/module/mongodb"
 	_ "github.com/elastic/beats/filebeat/module/mysql"
+	_ "github.com/elastic/beats/filebeat/module/nats"
 	_ "github.com/elastic/beats/filebeat/module/nginx"
 	_ "github.com/elastic/beats/filebeat/module/osquery"
 	_ "github.com/elastic/beats/filebeat/module/postgresql"

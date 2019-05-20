@@ -61,15 +61,17 @@ type NodeInfo struct {
 
 // License contains data about the Elasticsearch license
 type License struct {
-	Status            string    `json:"status"`
-	ID                string    `json:"uid"`
-	Type              string    `json:"type"`
-	IssueDate         time.Time `json:"issue_date"`
-	IssueDateInMillis int       `json:"issue_date_in_millis"`
-	MaxNodes          int       `json:"max_nodes"`
-	IssuedTo          string    `json:"issued_to"`
-	Issuer            string    `json:"issuer"`
-	StartDateInMillis int       `json:"start_date_in_millis"`
+	Status             string     `json:"status"`
+	ID                 string     `json:"uid"`
+	Type               string     `json:"type"`
+	IssueDate          *time.Time `json:"issue_date"`
+	IssueDateInMillis  int        `json:"issue_date_in_millis"`
+	ExpiryDate         *time.Time `json:"expiry_date,omitempty"`
+	ExpiryDateInMillis int        `json:"expiry_date_in_millis,omitempty"`
+	MaxNodes           int        `json:"max_nodes"`
+	IssuedTo           string     `json:"issued_to"`
+	Issuer             string     `json:"issuer"`
+	StartDateInMillis  int        `json:"start_date_in_millis"`
 }
 
 type licenseWrapper struct {
@@ -211,9 +213,20 @@ func GetLicense(http *helper.HTTP, resetURI string) (*License, error) {
 	// First, check the cache
 	license := licenseCache.get()
 
+	info, err := GetInfo(http, resetURI)
+	if err != nil {
+		return nil, err
+	}
+	var licensePath string
+	if info.Version.Number.Major < 7 {
+		licensePath = "_xpack/license"
+	} else {
+		licensePath = "_license"
+	}
+
 	// Not cached, fetch license from Elasticsearch
 	if license == nil {
-		content, err := fetchPath(http, resetURI, "_xpack/license", "")
+		content, err := fetchPath(http, resetURI, licensePath, "")
 		if err != nil {
 			return nil, err
 		}

@@ -19,6 +19,7 @@ filebeat.{{input_config | default("inputs")}}:
   harvester_buffer_size: {{harvester_buffer_size}}
   encoding: {{encoding | default("utf-8") }}
   tail_files: {{tail_files}}
+  line_terminator: {{ line_terminator }}
   backoff: 0.1s
   backoff_factor: 1
   max_backoff: 0.1s
@@ -91,9 +92,14 @@ filebeat.{{input_config | default("inputs")}}:
 {% endif %}
 
 filebeat.shutdown_timeout: {{ shutdown_timeout|default(0) }}
+
 {% if not skip_registry_config %}
-filebeat.registry_file: {{ beat.working_dir + '/' }}{{ registryFile|default("registry")}}
-filebeat.registry_file_permissions: {{ registryFilePermissions|default("0600") }}
+filebeat.registry:
+  path: {{ beat.working_dir + '/' }}{{ registry_home|default("registry")}}
+  file_permissions: {{ registry_file_permissions|default("0600") }}
+  {% if registry_migrate_file %}
+  migrate_file: {{ beat.working_dir + '/' + registry_migrate_file }}
+  {% endif %}
 {%endif%}
 
 {% if reload or reload_path -%}

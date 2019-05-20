@@ -249,7 +249,7 @@ func (bt *Openconfigbeat) Run(b *beat.Beat) error {
 			return nil
 		case event := <-bt.events:
 			event.Fields["type"] = b.Info.Name
-			logp.Info("Publishing: %s", event)
+			logp.Info("Publishing: %#v", event)
 			bt.client.Publish(event)
 		}
 	}

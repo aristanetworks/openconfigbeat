@@ -238,7 +238,7 @@ sudo ./{beatname_lc} -e
 <1> To monitor system files, you'll be running {beatname_uc} as root, so you
 need to change ownership of the configuration file, or run {beatname_uc} with
 `--strict.perms=false` specified. See
-{libbeat}/config-file-permissions.html[Config File Ownership and Permissions]
+{beats-ref}/config-file-permissions.html[Config File Ownership and Permissions]
 in the _Beats Platform Reference_.
 
 If you see a warning about too many open files, you need to increase the
@@ -282,4 +282,4 @@ The dashboards are provided as examples. We recommend that you
 {kibana-ref}/dashboard.html[customize] them to meet your needs.
 
 [role="screenshot"]
-image:./images/auditbeat-file-integrity-dashboard.png[Auditbeat File Integrity Dashboard]
+image::./images/auditbeat-file-integrity-dashboard.png[Auditbeat File Integrity Dashboard]

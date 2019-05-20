@@ -47,6 +47,7 @@ import (
 
 	// Add filebeat level processors
 	_ "github.com/elastic/beats/filebeat/processor/add_kubernetes_metadata"
+	_ "github.com/elastic/beats/libbeat/processors/decode_csv_fields"
 )
 
 const pipelinesWarning = "Filebeat is unable to load the Ingest Node pipelines for the configured" +
@@ -76,6 +77,9 @@ func New(b *beat.Beat, rawConfig *common.Config) (beat.Beater, error) {
 		rawConfig,
 		"prospectors",
 		"config.prospectors",
+		"registry_file",
+		"registry_file_permissions",
+		"registry_flush",
 	); err != nil {
 		return nil, err
 	}
@@ -293,7 +297,7 @@ func (fb *Filebeat) Run(b *beat.Beat) error {
 	finishedLogger := newFinishedLogger(wgEvents)
 
 	// Setup registrar to persist state
-	registrar, err := registrar.New(config.RegistryFile, config.RegistryFilePermissions, config.RegistryFlush, finishedLogger)
+	registrar, err := registrar.New(config.Registry, finishedLogger)
 	if err != nil {
 		logp.Err("Could not init registrar: %v", err)
 		return err

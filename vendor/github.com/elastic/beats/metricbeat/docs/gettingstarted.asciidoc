@@ -267,7 +267,7 @@ sudo ./{beatname_lc} -e
 <1> You'll be running {beatname_uc} as root, so you need to change ownership of the
 configuration file and any configurations enabled in the `modules.d` directory,
 or run {beatname_uc} with `--strict.perms=false` specified. See
-{libbeat}/config-file-permissions.html[Config File Ownership and Permissions]
+{beats-ref}/config-file-permissions.html[Config File Ownership and Permissions]
 in the _Beats Platform Reference_.
 
 *win:*
@@ -311,4 +311,4 @@ The dashboards are provided as examples. We recommend that you
 {kibana-ref}/dashboard.html[customize] them to meet your needs.
 
 [role="screenshot"]
-image:./images/{beatname_lc}_system_dashboard.png[{beatname_uc} Dashboard]
+image::./images/{beatname_lc}_system_dashboard.png[{beatname_uc} Dashboard]
