@@ -116,22 +116,36 @@ func formatValue(update *pb.Update) (interface{}, error) {
 	}
 }
 
-func convertUpdate(dataset string, prefix string, update *pb.Update) (common.MapStr,
-	error) {
-	m := common.MapStr{}
-	m.Put("dataset", dataset)
-	m.Put("path", path.Join(prefix, gnmi.StrPath(update.Path)))
+func convertUpdate(dataset string, prefix string, update *pb.Update) ([]common.MapStr, error) {
+	makeMapStr := func(updateMap map[string]interface{}) common.MapStr {
+		mapStr := common.MapStr{}
+		mapStr.Put("dataset", dataset)
+		mapStr.Put("path", path.Join(prefix, gnmi.StrPath(update.Path)))
+		mapStr["update"] = updateMap
+		return mapStr
+	}
 	outputValue, err := formatValue(update)
 	if err != nil {
 		return nil, fmt.Errorf("Malformed update value: %s", err)
 	}
-	if _, ok := outputValue.(map[string]interface{}); !ok {
+	var maps []common.MapStr
+	switch outputValue := outputValue.(type) {
+	case map[string]interface{}:
+		m := makeMapStr(outputValue)
+		maps = []common.MapStr{m}
+	case []interface{}:
+		maps = make([]common.MapStr, len(outputValue))
+		for i, u := range outputValue {
+			k := fmt.Sprintf("%T", u)
+			m := makeMapStr(map[string]interface{}{k: u})
+			maps[i] = m
+		}
+	default:
 		k := fmt.Sprintf("%T", outputValue)
-		m["update"] = map[string]interface{}{k: outputValue}
-	} else {
-		m["update"] = outputValue
+		m := makeMapStr(map[string]interface{}{k: outputValue})
+		maps = []common.MapStr{m}
 	}
-	return m, nil
+	return maps, nil
 }
 
 // recv listens for SubscribeResponse notifications on a stream, and publishes the
@@ -172,16 +186,18 @@ func (bt *Openconfigbeat) recv(host string) {
 			}
 			fields = common.MapStr{}
 			for _, up := range update.GetUpdate() {
-				output, err := convertUpdate(host, prefixStr, up)
+				outputs, err := convertUpdate(host, prefixStr, up)
 				if err != nil {
 					logp.Err(err.Error())
 					continue
 				}
-				if len(fields) > 0 && fields["path"] != output["path"] {
-					flush()
-					fields = output
-				} else {
-					fields.Update(output)
+				for _, output := range outputs {
+					if len(fields) > 0 && fields["path"] != output["path"] {
+						flush()
+						fields = output
+					} else {
+						fields.Update(output)
+					}
 				}
 			}
 			if len(fields) > 0 {
