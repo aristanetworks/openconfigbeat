@@ -1,3 +1,5 @@
+// Used to forward gerrit commits to public github. yaml config found in
+// ardc-config/ops/ansible/inventories/infra/files/jenkins_controller/cvp/jobs/arista-go-github.yml
 pipeline {
     agent { label 'jenkins-agent-cloud' }
     stages {
